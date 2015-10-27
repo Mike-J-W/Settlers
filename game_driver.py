@@ -1,6 +1,12 @@
 
 import random
 
+lumber = "Wood"
+grain = "Wheat"
+wool = "Wool"
+clay = "Clay"
+ore = "Ore"
+
 class Hex(object):
     def __init__(self, resource, odds):
         self.resource = resource
@@ -73,6 +79,7 @@ class Player(object):
         self.settlements = []
         self.roads = []
         self.developmentCards = []
+        self.armySize = 0
         self.hasLongestRoad = False
         self.hasLargestArmy = False
         self.cardsInHand = []
@@ -87,7 +94,17 @@ class Player(object):
         pass
         
     def buy_development_card(self, deck):
-        pass
+        if ore in self.cardsInHand and grain in self.cardsInHand and wool in self.cardsInHand:
+            newCard = deck.draw()
+            if newCard == "Empty":
+                return 1
+            else:
+                self.developmentCards.append(newCard)
+                self.cardsInHand.remove(ore)
+                self.cardsInHand.remove(grain)
+                self.cardsInHand.remove(wool)
+        else:
+            return 1
         
     def play_knight(self):
         pass
@@ -148,9 +165,12 @@ class Development_Card_Deck(object):
     def __init__(self):
         self.cardList = ["Knight"] * 14 + ["Monoply", "Year of Plenty", "Road Building"] * 2
         random.shuffle(self.cardList)
-        
+    
     def draw(self):
-        card = cardList[0]
-        cardList = cardList[1:]
-        return card
-        
+        if len(cardList) > 0:
+            card = cardList[0]
+            if len(cardList) > 0:
+                cardList = cardList[1:]
+            return card
+        else:
+            return "Empty"
