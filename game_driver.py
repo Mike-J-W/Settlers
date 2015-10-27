@@ -1,4 +1,6 @@
 
+import random
+
 class Hex(object):
     def __init__(self, resource, odds):
         self.resource = resource
@@ -144,8 +146,8 @@ class Longest_Road(object):
         
 class Development_Card_Deck(object):
     def __init__(self):
-        self.cardList = []
-        #TODO: randomize cards in list
+        self.cardList = ["Knight"] * 14 + ["Monoply", "Year of Plenty", "Road Building"] * 2
+        random.shuffle(self.cardList)
         
     def draw(self):
         card = cardList[0]
