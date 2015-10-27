@@ -184,7 +184,16 @@ class Longest_Road(object):
         
     def determine_owner(self, players):
         pass
-        
+    
+''' def explore_roads(length, road, countedRoads):
+        countedRoads.append(road)
+        length += 1
+        for int in [road.intersection1, road.intersection2]:
+            if int.settlement.owner == currentPlayer or == None:
+                For branchRoad in int.roadList.remove(countedRoads):
+                    newLengths.append(explore_roads(length, branchRoad, countedRoads))
+                return max([length] + newLengths)
+'''
     def change_possession(self, newOwner):
         pass
         
