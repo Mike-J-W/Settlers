@@ -163,7 +163,7 @@ class Longest_Road(object):
         
 class Development_Card_Deck(object):
     def __init__(self):
-        self.cardList = ["Knight"] * 14 + ["Monoply", "Year of Plenty", "Road Building"] * 2
+        self.cardList = ["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] *2
         random.shuffle(self.cardList)
     
     def draw(self):
