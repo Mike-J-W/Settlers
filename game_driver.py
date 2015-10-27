@@ -69,6 +69,9 @@ class Robber(object):
         self.currentHex.hasRobber = False
         self.currentHex = newHex
         newHex.hasRobber = True
+
+    def steal_from(self, playerToRob):
+        pass
         
         
 class Player(object):
@@ -103,11 +106,21 @@ class Player(object):
                 self.cardsInHand.remove(ore)
                 self.cardsInHand.remove(grain)
                 self.cardsInHand.remove(wool)
+                return 0
         else:
             return 1
         
-    def play_knight(self):
-        pass
+    def play_knight(self, robber, newHex, playerToRob, largestArmy):
+        if "Knight" in self.developmentCards:
+            self.armySize += 1
+            self.developmentCards.remove("Knight")
+            robber.move(newHex)
+            newCard = robber.steal_from(playerToRob)
+            if newCard != "Empty":
+                self.cardsInHand.append(newCard)
+            largestArmy.determine_owner()
+        else:
+            return 1
         
     def play_monoply(self):
         pass
@@ -138,11 +151,12 @@ class Player(object):
         
         
 class Largest_Army(object):
-    def __init__(self):
+    def __init__(self, playerList):
         self.owner = None
         self.size = 0
+        self.players = playerList
         
-    def determine_owner(self, players):
+    def determine_owner(self):
         pass
         
     def change_possession(self, newOwner):
