@@ -122,12 +122,26 @@ class Player(object):
         else:
             return 1
         
-    def play_monoply(self):
-        pass
-        
-    def play_year_of_plenty(self):
-        pass
-        
+    def play_monopoly(self, playerList, resourceWanted):
+        if "Monopoly" in self.developmentCards:
+            self.developmentCards.remove("Monopoly")
+            for player in playerList.remove(self):
+                originalHandSize = len(player.cardsInHand)
+                player.cardsInHand = [card for card in player.cardsInHand if card != resourceWanted]
+                cardsRemoved = originalHandSize - len(player.cardsInHand)
+                self.cardsInHand += cardsRemoved * [resourceWanted]
+            return 0
+        else:
+            return 1
+    
+    def play_year_of_plenty(self, cardsDesired):
+        if "Year of Plenty" in self.developmentCards:
+            self.developmentCards.remove("Year of Plenty")
+            self.draw_cards(cardsDesired[:2])
+            return 0
+        else:
+            return 1
+    
     def play_road_building(self):
         pass
         
