@@ -78,7 +78,10 @@ class Player(object):
         self.color = color
         self.points = 0
         self.settlements = []
+        sef.townsRemaining = 5
+        self.citiesRemaing = 4
         self.roads = []
+        self.roadsRemaining = 15
         self.developmentCards = []
         self.armySize = 0
         self.hasLongestRoad = False
@@ -108,43 +111,52 @@ class Player(object):
         else:
             return 1
 
-def play_knight(self, robber, newHex, playerToRob, largestArmy):
-    if "Knight" in self.developmentCards:
-        self.armySize += 1
+    def play_knight(self, robber, newHex, playerToRob, largestArmy):
+        if "Knight" in self.developmentCards:
+            self.armySize += 1
             self.developmentCards.remove("Knight")
             robber.move(newHex)
             newCard = robber.steal_from(playerToRob)
             if newCard != "Empty":
                 self.cardsInHand.append(newCard)
-        largestArmy.determine_owner()
+            largestArmy.determine_owner()
         else:
             return 1
                 
-                def play_monopoly(self, playerList, resourceWanted):
-                    if "Monopoly" in self.developmentCards:
-self.developmentCards.remove("Monopoly")
-    for player in playerList.remove(self):
-        originalHandSize = len(player.cardsInHand)
-            player.cardsInHand = [card for card in player.cardsInHand if card != resourceWanted]
+    def play_monopoly(self, playerList, resourceWanted):
+        if "Monopoly" in self.developmentCards:
+            self.developmentCards.remove("Monopoly")
+            for player in playerList.remove(self):
+                originalHandSize = len(player.cardsInHand)
+                player.cardsInHand = [card for card in player.cardsInHand if card != resourceWanted]
                 cardsRemoved = originalHandSize - len(player.cardsInHand)
                 self.cardsInHand += cardsRemoved * [resourceWanted]
             return 0
         else:
             return 1
 
-def play_year_of_plenty(self, cardsDesired):
-    if "Year of Plenty" in self.developmentCards:
-        self.developmentCards.remove("Year of Plenty")
+    def play_year_of_plenty(self, cardsDesired):
+        if "Year of Plenty" in self.developmentCards:
+            self.developmentCards.remove("Year of Plenty")
             self.draw_cards(cardsDesired[:2])
             return 0
         else:
             return 1
                 
-                def play_road_building(self):
-                    pass
+    def play_road_building(self, intersectionPair1, intersectionPair2):
+        if "Road Building" in self.developmentCards:
+            for pair in [intersectionPair1, intersectionPair2]:
+                if self.roadsRemaining > 0:
+                    if len(pair) > 1:
+                        self.build_road(pair[0], pair[1])
+                    else:
+                        return 1
+            return 0
+        else:
+            return 1
 
-def offer_trade(self, cardsOffering, cardsRequesting, playersNotified):
-    pass
+    def offer_trade(self, cardsOffering, cardsRequesting, playersNotified):
+        pass
     
     def make_trade(self, cardsGiving, cardsTaking, tradeAgent):
         pass
@@ -204,7 +216,7 @@ class Longest_Road(object):
 
 class Development_Card_Deck(object):
     def __init__(self):
-        self.cardList = ["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] *2
+        self.cardList = ["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] * 5
         random.shuffle(self.cardList)
     
     def draw(self):
