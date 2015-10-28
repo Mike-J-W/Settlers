@@ -38,8 +38,8 @@ class Settlement(object):
         else:
             return 1
 
-def find_yield(self, roll):
-    yieldedResources = []
+    def find_yield(self, roll):
+        yieldedResources = []
         for hexElement in self.intersection.hexes:
             if hexElement.odds == roll and hexElement.hasRobber == False and hexElement.resource != "Desert":
                 yieldedResources += self.scale * [hexElement.resource]
@@ -195,20 +195,20 @@ class Longest_Road(object):
     def determine_owner(self, players):
         pass
     
-    def explore_roads(length, road, countedRoads, lastIntersection):
-        countedRoads.append(road)
-        length += 1
+    def explore_players_roads(playerExploring, entryRoad, roadLength, countedRoads, lastIntersection):
+        countedRoads.append(entryRoad)
+        roadLength += 1
         newLengths = []
-        intersectionList = [road.intersection1, road.intersection2]
+        intersectionList = [entryRoad.intersection1, entryRoad.intersection2]
         if lastIntersection != "":
             intersectionList.remove(lastIntersection)
         for currentIntersection in intersectionList:
-            if currentIntersection.settlement.owner == currentPlayer or currentIntersection.settlement.owner == None:
+            if currentIntersection.settlement.owner == playerExploring or currentIntersection.settlement.owner == None:
                 roadList = [someRoad for someRoad in currentIntersection.roads if someRoad not in countedRoads]
                 if roadList != []:
                     for branchRoad in roadList:
-                        newLengths.append(explore_roads(length, branchRoad, countedRoads, currentIntersection))
-        return max([length] + newLengths)
+                        newLengths.append(explore_players_roads(playerExploring, branchRoad, roadLength, countedRoads, currentIntersection))
+        return max([roadLength] + newLengths)
     
     def change_possession(self, newOwner):
         pass
