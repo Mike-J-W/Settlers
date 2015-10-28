@@ -7,6 +7,9 @@ wool = "Wool"
 clay = "Clay"
 ore = "Ore"
 
+
+# A hex piece that defines the board
+# Has resource type, number on the hex, and whether the hex has the robber on it
 class Hex(object):
     def __init__(self, resource, odds):
         self.resource = resource
@@ -16,6 +19,8 @@ class Hex(object):
             self.hasRobber = True
 
 
+# A vertice between hexes and/or coasts
+# Has list of adjacent hexes, list of adjacent roads, town/city object, and port info
 class Intersection(object):
     def __init__(self, hexList, port):
         self.hexes = hexList
@@ -25,6 +30,9 @@ class Intersection(object):
         self.buildable = True
 
 
+# A town or citiy placed on the intersections
+# Has scale (1 for town, 2 for city), owner of settlement, and location
+# Functions for upgrading from town to city and for determining the resources yieled by a dice roll
 class Settlement(object):
     def __init__(self, player, intersection):
         self.scale = 1
@@ -46,6 +54,8 @@ class Settlement(object):
         return yieldedResources
 
 
+# A road connecting settlements
+# Has owner of road, and the intersections on both ends of the road
 class Road(object):
     def __init__(self, player, intersection1, intersection2):
         self.owner = player
@@ -53,12 +63,17 @@ class Road(object):
         self.intersection2 = intersection2
 
 
+# A port along the coast
+# Has resource(s) that can be traded there, and the rate of trade
 class Port(object):
     def __init__(self, resources, rate):
         self.resources = resources
         self.rate = rate
 
 
+# The Robber piece
+# Has the current location of the Robber
+# Functions for moving the Robber and stealing a resource card
 class Robber(object):
     def __init__(self, desertHex):
         self.currentHex = desertHex
@@ -72,6 +87,11 @@ class Robber(object):
         pass
 
 
+# A player in the game
+# Has identifying variables, point total, list of settlements built and count remaing, list of roads built and
+#     count remaining, list of unplayed development cards, count of Knights played, status of owning Longest_Road and
+#     Largest_Army, and list of resource cards in hand
+# Functions for each action a player can take during their turn
 class Player(object):
     def __init__(self, name, color):
         self.name = name
@@ -174,6 +194,9 @@ class Player(object):
         pass
 
 
+# The Largest Army placard
+# Has owner of placard, size of the largest army, and list of players in the game
+# Functions for determining the player with the largest army, and for reassigning the placard
 class Largest_Army(object):
     def __init__(self, playerList):
         self.owner = None
@@ -187,6 +210,10 @@ class Largest_Army(object):
         pass
 
 
+# The Longest Road placard
+# Has owner of placard and length of the longest road
+# Functions for determining the player with the longest road, for determining the length of the longest
+#     strech connected to a given road (for a specific player), and for reassigning the placard
 class Longest_Road(object):
     def __init__(self):
         self.owner = None
@@ -214,6 +241,9 @@ class Longest_Road(object):
         pass
 
 
+# The deck of undrawn development cards
+# Has the shuffled list of cards
+# Function for drawing a card from the deck
 class Development_Card_Deck(object):
     def __init__(self):
         self.cardList = ["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] * 5
