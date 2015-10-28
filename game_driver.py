@@ -1,4 +1,12 @@
 
+import random
+
+lumber = "Wood"
+grain = "Wheat"
+wool = "Wool"
+clay = "Clay"
+ore = "Ore"
+
 class Hex(object):
     def __init__(self, resource, odds):
         self.resource = resource
@@ -61,6 +69,9 @@ class Robber(object):
         self.currentHex.hasRobber = False
         self.currentHex = newHex
         newHex.hasRobber = True
+
+    def steal_from(self, playerToRob):
+        pass
         
         
 class Player(object):
@@ -71,6 +82,7 @@ class Player(object):
         self.settlements = []
         self.roads = []
         self.developmentCards = []
+        self.armySize = 0
         self.hasLongestRoad = False
         self.hasLargestArmy = False
         self.cardsInHand = []
@@ -85,17 +97,51 @@ class Player(object):
         pass
         
     def buy_development_card(self, deck):
-        pass
+        if ore in self.cardsInHand and grain in self.cardsInHand and wool in self.cardsInHand:
+            newCard = deck.draw()
+            if newCard == "Empty":
+                return 1
+            else:
+                self.developmentCards.append(newCard)
+                self.cardsInHand.remove(ore)
+                self.cardsInHand.remove(grain)
+                self.cardsInHand.remove(wool)
+                return 0
+        else:
+            return 1
         
-    def play_knight(self):
-        pass
+    def play_knight(self, robber, newHex, playerToRob, largestArmy):
+        if "Knight" in self.developmentCards:
+            self.armySize += 1
+            self.developmentCards.remove("Knight")
+            robber.move(newHex)
+            newCard = robber.steal_from(playerToRob)
+            if newCard != "Empty":
+                self.cardsInHand.append(newCard)
+            largestArmy.determine_owner()
+        else:
+            return 1
         
-    def play_monoply(self):
-        pass
-        
-    def play_year_of_plenty(self):
-        pass
-        
+    def play_monopoly(self, playerList, resourceWanted):
+        if "Monopoly" in self.developmentCards:
+            self.developmentCards.remove("Monopoly")
+            for player in playerList.remove(self):
+                originalHandSize = len(player.cardsInHand)
+                player.cardsInHand = [card for card in player.cardsInHand if card != resourceWanted]
+                cardsRemoved = originalHandSize - len(player.cardsInHand)
+                self.cardsInHand += cardsRemoved * [resourceWanted]
+            return 0
+        else:
+            return 1
+    
+    def play_year_of_plenty(self, cardsDesired):
+        if "Year of Plenty" in self.developmentCards:
+            self.developmentCards.remove("Year of Plenty")
+            self.draw_cards(cardsDesired[:2])
+            return 0
+        else:
+            return 1
+    
     def play_road_building(self):
         pass
         
@@ -119,11 +165,12 @@ class Player(object):
         
         
 class Largest_Army(object):
-    def __init__(self):
+    def __init__(self, playerList):
         self.owner = None
         self.size = 0
+        self.players = playerList
         
-    def determine_owner(self, players):
+    def determine_owner(self):
         pass
         
     def change_possession(self, newOwner):
@@ -137,18 +184,30 @@ class Longest_Road(object):
         
     def determine_owner(self, players):
         pass
-        
+    
+''' def explore_roads(length, road, countedRoads):
+        countedRoads.append(road)
+        length += 1
+        for int in [road.intersection1, road.intersection2]:
+            if int.settlement.owner == currentPlayer or == None:
+                For branchRoad in int.roadList.remove(countedRoads):
+                    newLengths.append(explore_roads(length, branchRoad, countedRoads))
+                return max([length] + newLengths)
+'''
     def change_possession(self, newOwner):
         pass
         
         
 class Development_Card_Deck(object):
     def __init__(self):
-        self.cardList = []
-        #TODO: randomize cards in list
-        
+        self.cardList = ["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] *2
+        random.shuffle(self.cardList)
+    
     def draw(self):
-        card = cardList[0]
-        cardList = cardList[1:]
-        return card
-        
+        if len(cardList) > 0:
+            card = cardList[0]
+            if len(cardList) > 0:
+                cardList = cardList[1:]
+            return card
+        else:
+            return "Empty"
