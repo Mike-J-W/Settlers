@@ -27,25 +27,18 @@ class Intersection(object):
         self.port = port
         self.settlement = None
         self.roads = []
-        self.buildable = True
+        self.isEmpty = True
 
 
 # A town or citiy placed on the intersections
 # Has scale (1 for town, 2 for city), owner of settlement, and location
-# Functions for upgrading from town to city and for determining the resources yieled by a dice roll
+# Function for determining the resources yieled by a dice roll
 class Settlement(object):
     def __init__(self, player, intersection):
         self.scale = 1
         self.owner = player
-        self.intersection = intersection
+        self.intersection = None
     
-    def upgrade(self):
-        if self.scale == 1:
-            self.scale = 2
-            return 0
-        else:
-            return 1
-
     def find_yield(self, roll):
         yieldedResources = []
         for hexElement in self.intersection.hexes:
@@ -97,22 +90,53 @@ class Player(object):
         self.name = name
         self.color = color
         self.points = 0
-        self.settlements = []
-        sef.townsRemaining = 5
-        self.citiesRemaing = 4
-        self.roads = []
-        self.roadsRemaining = 15
+        self.builtSettlements = []
+        self.unbuiltSettlements = []
+        self.builtRoads = []
+        self.unbuiltRoads = []
         self.developmentCards = []
         self.armySize = 0
         self.hasLongestRoad = False
         self.hasLargestArmy = False
-        self.cardsInHand = []
+        self.cardsInHand = {wool: 0, grain: 0, lumber: 0, clay: 0, ore: 0}
     
     def build_town(self, intersection):
-        pass
+        townCost = [grain, wool, clay, lumber]
+        for resource in townCost:
+            if self.cardsInHand[resource] == 0:
+                return 1
+        if intersection.isEmpty and self.unbuiltSettlements != []:
+            for settlement in self.unbuiltSettlements:
+                if settlement.scale == 1:
+                    self.unbuiltSettlements.remove(settlement)
+                    self.builtSettlements.append(settlement)
+                    settlement.intersection = intersection
+                    intersection.settlement = settlement
+                    intersection.isEmpty = False
+                    for resource in townCost:
+                        self.cardsInHand[resource] -= 1
+                        return 0
+                return 1
+        else:
+            return 1
     
-    def build_city(self, townToUpgrade):
-        pass
+    def build_city(self, intersectionToUpgrade):
+        if self.cardsInHand[grain] < 2 or self.cardsInHand[ore] < 3:
+            return 1
+        if intersectionToUgrade.settlement in builtSettlements and intersectionToUpgrade.settlement.scale == 1:
+            for settlement in self.unbuiltSettlements:
+                if settlement.scale == 2:
+                    self.unbuiltSettlements.remove(settlement)
+                    self.builtSettlements.append(settlement)
+                    self.builtSettlements.remove(intersection.settlement)
+                    self.unbuiltSettlements.append(intersection.settlement)
+                    intersection.settlement = settlement
+                    self.cardsInHand[grain] -= 2
+                    self.cardsInHand[ore] -= 3
+                    return 0
+            return 1
+        else:
+            return 1
     
     def build_road(self, intersection1, intersection2):
         pass
