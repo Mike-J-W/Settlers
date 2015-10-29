@@ -105,41 +105,54 @@ class Player(object):
         for resource in townCost:
             if self.cardsInHand[resource] == 0:
                 return 1
-        if intersection.isEmpty and self.unbuiltSettlements != []:
-            for settlement in self.unbuiltSettlements:
-                if settlement.scale == 1:
-                    self.unbuiltSettlements.remove(settlement)
-                    self.builtSettlements.append(settlement)
-                    settlement.intersection = intersection
-                    intersection.settlement = settlement
-                    intersection.isEmpty = False
-                    for resource in townCost:
-                        self.cardsInHand[resource] -= 1
-                        return 0
-                return 1
-        else:
+        if not intersection.isEmpty or self.unbuiltSettlements == []:
             return 1
+        for settlement in self.unbuiltSettlements:
+            if settlement.scale == 1:
+                self.unbuiltSettlements.remove(settlement)
+                self.builtSettlements.append(settlement)
+                settlement.intersection = intersection
+                intersection.settlement = settlement
+                intersection.isEmpty = False
+                for resource in townCost:
+                    self.cardsInHand[resource] -= 1
+                return 0
+        return 1
     
     def build_city(self, intersectionToUpgrade):
         if self.cardsInHand[grain] < 2 or self.cardsInHand[ore] < 3:
             return 1
-        if intersectionToUgrade.settlement in builtSettlements and intersectionToUpgrade.settlement.scale == 1:
-            for settlement in self.unbuiltSettlements:
-                if settlement.scale == 2:
-                    self.unbuiltSettlements.remove(settlement)
-                    self.builtSettlements.append(settlement)
-                    self.builtSettlements.remove(intersection.settlement)
-                    self.unbuiltSettlements.append(intersection.settlement)
-                    intersection.settlement = settlement
-                    self.cardsInHand[grain] -= 2
-                    self.cardsInHand[ore] -= 3
-                    return 0
+        if intersectionToUgrade.settlement not in builtSettlements or intersectionToUpgrade.settlement.scale == 2:
             return 1
-        else:
-            return 1
+        for settlement in self.unbuiltSettlements:
+            if settlement.scale == 2:
+                self.unbuiltSettlements.remove(settlement)
+                self.builtSettlements.append(settlement)
+                self.builtSettlements.remove(intersection.settlement)
+                self.unbuiltSettlements.append(intersection.settlement)
+                intersection.settlement = settlement
+                self.cardsInHand[grain] -= 2
+                self.cardsInHand[ore] -= 3
+                return 0
+        return 1
     
     def build_road(self, intersection1, intersection2):
-        pass
+        if self.cardsInHand[lumber] == 0 or self.cardsInHand[clay] == 0 or self.unbuiltRoads == []:
+            return 1
+        if intersection1.roads != []:
+            for road in intersection1.roads:
+                if road.intersection1 == intersection2 or road.intersection2 == intersection2:
+                    return 1
+        newRoad = self.unbuiltRoads[0]
+        self.unbuiltRoads.remove(newRoad)
+        self.builtRoads.append(newRoad)
+        newRoad.intersection1 = intersection1
+        intersection1.roads.append(newRoad)
+        newRoad.intersection2 = intersection2
+        intersection2.raods.append(newRoad)
+        self.cardsInHand[lumber] -= 1
+        self.cardsInHand[clay] -= 1
+        return 0
     
     def buy_development_card(self, deck):
         if ore in self.cardsInHand and grain in self.cardsInHand and wool in self.cardsInHand:
