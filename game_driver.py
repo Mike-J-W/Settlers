@@ -138,7 +138,7 @@ class Player(object):
                 return 0
         return 1
     
-    def build_road(self, intersection1, intersection2):
+    def build_road(self, intersection1, intersection2, longestRoad):
         if self.cardsInHand[lumber] == 0 or self.cardsInHand[clay] == 0 or self.unbuiltRoads == []:
             return 1
         if intersection1 not in intersection2.adjacentIntersections:
@@ -156,6 +156,7 @@ class Player(object):
         intersection2.raods.append(newRoad)
         self.cardsInHand[lumber] -= 1
         self.cardsInHand[clay] -= 1
+        longestRoad.determine_owner()
         return 0
     
     def buy_development_card(self, deck):
@@ -256,12 +257,28 @@ class Largest_Army(object):
 # Functions for determining the player with the longest road, for determining the length of the longest
 #     strech connected to a given road (for a specific player), and for reassigning the placard
 class Longest_Road(object):
-    def __init__(self):
+    def __init__(self, playerList):
         self.owner = None
         self.size = 0
+        self.players = playerList
     
-    def determine_owner(self, players):
-        pass
+    def determine_owner(self):
+        newOwner = self.owner
+        newSize = self.size
+        for player in self.players:
+            maxRoadLength
+            for road in player.builtRoads:
+                roadLength = self.explore_players_roads(player, road, 0, [], "")
+                if roadLength > maxRoadLength:
+                    maxRoadLength = roadLength
+            if maxRoadLength > 3 and maxRoadLength > newSize:
+                newOwner = player
+                newSize = maxRoadLength
+        if newOwner != self.owner:
+            self.owner.hasLongestRoad = False
+            self.owner = newOwner
+            self.owner.hasLongestRoad = True
+            self.size = newSize
     
     def explore_players_roads(playerExploring, entryRoad, roadLength, countedRoads, lastIntersection):
         countedRoads.append(entryRoad)
@@ -277,9 +294,6 @@ class Longest_Road(object):
                     for branchRoad in roadList:
                         newLengths.append(explore_players_roads(playerExploring, branchRoad, roadLength, countedRoads, currentIntersection))
         return max([roadLength] + newLengths)
-    
-    def change_possession(self, newOwner):
-        pass
 
 
 # The deck of undrawn development cards
