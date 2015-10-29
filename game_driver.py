@@ -22,12 +22,13 @@ class Hex(object):
 # A vertice between hexes and/or coasts
 # Has list of adjacent hexes, list of adjacent roads, town/city object, and port info
 class Intersection(object):
-    def __init__(self, hexList, port):
+    def __init__(self, hexList, port, adjacentIntersections):
         self.hexes = hexList
         self.port = port
         self.settlement = None
         self.roads = []
-        self.isEmpty = True
+        self.canBeSettled = True
+        self.adjacentIntersections = adjacentIntersections
 
 
 # A town or citiy placed on the intersections
@@ -100,20 +101,21 @@ class Player(object):
         self.hasLargestArmy = False
         self.cardsInHand = {wool: 0, grain: 0, lumber: 0, clay: 0, ore: 0}
     
-    def build_town(self, intersection):
+    def build_town(self, intersectionToSettle):
         townCost = [grain, wool, clay, lumber]
         for resource in townCost:
             if self.cardsInHand[resource] == 0:
                 return 1
-        if not intersection.isEmpty or self.unbuiltSettlements == []:
+        if not intersectionToSettle.canBeSettled or self.unbuiltSettlements == []:
             return 1
         for settlement in self.unbuiltSettlements:
             if settlement.scale == 1:
                 self.unbuiltSettlements.remove(settlement)
                 self.builtSettlements.append(settlement)
-                settlement.intersection = intersection
-                intersection.settlement = settlement
-                intersection.isEmpty = False
+                settlement.intersection = intersectionToSettle
+                intersectionToSettle.settlement = settlement
+                for intersection in [intersectionToSettle] + intersectionToSettle.adjacentIntersections:
+                    intersection.canBeSettled = False
                 for resource in townCost:
                     self.cardsInHand[resource] -= 1
                 return 0
@@ -138,6 +140,8 @@ class Player(object):
     
     def build_road(self, intersection1, intersection2):
         if self.cardsInHand[lumber] == 0 or self.cardsInHand[clay] == 0 or self.unbuiltRoads == []:
+            return 1
+        if intersection1 not in intersection2.adjacentIntersections:
             return 1
         if intersection1.roads != []:
             for road in intersection1.roads:
