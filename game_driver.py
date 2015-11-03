@@ -246,10 +246,17 @@ class Largest_Army(object):
         self.players = playerList
     
     def determine_owner(self):
-        pass
-    
-    def change_possession(self, newOwner):
-        pass
+        newSize = self.size
+        newOwner = self.owner
+        for player in self.players:
+            if player.armySize > newSize:
+                newSize = player.armySize
+                newOwner = player
+        if newOwner != self.Owner:
+            self.owner.hasLargestArmy = False
+            self.owner = newOwner
+            self.owner.hasLargestArmy = True
+            self.size = newSize
 
 
 # The Longest Road placard
