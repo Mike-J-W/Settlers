@@ -78,7 +78,15 @@ class Robber(object):
         newHex.hasRobber = True
     
     def steal_from(self, playerToRob):
-        pass
+        targetCards = playerToRob.cardsInHand
+        targetHand = []
+        for key in targetCards.keys():
+            targetHand += [key] * targetCards[key]
+        if targetHand == []:
+            return "Empty"
+        else:
+            random.shuffle(targetHand)
+            return targetHand[0]
 
 
 # A player in the game
