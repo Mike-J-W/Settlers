@@ -235,10 +235,16 @@ class Player(object):
         pass
     
     def draw_cards(self, cardsToDraw):
-        pass
+        for card in cardsToDraw:
+            self.cardsInHand[card] += 1
     
     def determine_harvest(self, roll):
-        pass
+        harvest = []
+        if self.builtSettlements != []:
+            for settlement in self.builtSettlements:
+                harvest += settlement.find_yield(roll)
+            if harvest != []:
+                self.draw_cards(harvest)
     
     def count_points(self):
         pass
