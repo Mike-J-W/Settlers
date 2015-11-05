@@ -21,40 +21,40 @@ class Hex(object):
 
 # A vertice between hexes and/or coasts
 # Has list of adjacent hexes, list of adjacent roads, town/city object, and port info
-class Intersection(object):
-    def __init__(self, hexList, port, adjacentIntersections):
+class Vertex(object):
+    def __init__(self, hexList, port, adjacentVertices):
         self.hexes = hexList
         self.port = port
         self.settlement = None
         self.roads = []
         self.canBeSettled = True
-        self.adjacentIntersections = adjacentIntersections
+        self.adjacentVertices = adjacentVertices
 
 
-# A town or citiy placed on the intersections
+# A town or citiy placed on the vertices
 # Has scale (1 for town, 2 for city), owner of settlement, and location
 # Function for determining the resources yieled by a dice roll
 class Settlement(object):
-    def __init__(self, player, intersection):
+    def __init__(self, player, vertex):
         self.scale = 1
         self.owner = player
-        self.intersection = None
+        self.vertex = None
     
     def find_yield(self, roll):
         yieldedResources = []
-        for hexElement in self.intersection.hexes:
+        for hexElement in self.vertex.hexes:
             if hexElement.odds == roll and hexElement.hasRobber == False and hexElement.resource != "Desert":
                 yieldedResources += self.scale * [hexElement.resource]
         return yieldedResources
 
 
 # A road connecting settlements
-# Has owner of road, and the intersections on both ends of the road
+# Has owner of road, and the vertices on both ends of the road
 class Road(object):
-    def __init__(self, player, intersection1, intersection2):
+    def __init__(self, player, vertex1, vertex2):
         self.owner = player
-        self.intersection1 = intersection1
-        self.intersection2 = intersection2
+        self.vertex1 = vertex1
+        self.vertex2 = vertex2
 
 
 # A port along the coast
@@ -109,59 +109,59 @@ class Player(object):
         self.hasLargestArmy = False
         self.cardsInHand = {wool: 0, grain: 0, lumber: 0, clay: 0, ore: 0}
     
-    def build_town(self, intersectionToSettle):
+    def build_town(self, vertexToSettle):
         townCost = [grain, wool, clay, lumber]
         for resource in townCost:
             if self.cardsInHand[resource] == 0:
                 return 1
-        if not intersectionToSettle.canBeSettled or self.unbuiltSettlements == []:
+        if not vertexToSettle.canBeSettled or self.unbuiltSettlements == []:
             return 1
         for settlement in self.unbuiltSettlements:
             if settlement.scale == 1:
                 self.unbuiltSettlements.remove(settlement)
                 self.builtSettlements.append(settlement)
-                settlement.intersection = intersectionToSettle
-                intersectionToSettle.settlement = settlement
-                for intersection in [intersectionToSettle] + intersectionToSettle.adjacentIntersections:
-                    intersection.canBeSettled = False
+                settlement.vertex = vertexToSettle
+                vertexToSettle.settlement = settlement
+                for vertex in [vertexToSettle] + vertexToSettle.adjacentVertices:
+                    vertex.canBeSettled = False
                 for resource in townCost:
                     self.cardsInHand[resource] -= 1
                 return 0
         return 1
     
-    def build_city(self, intersectionToUpgrade):
+    def build_city(self, vertexToUpgrade):
         if self.cardsInHand[grain] < 2 or self.cardsInHand[ore] < 3:
             return 1
-        if intersectionToUgrade.settlement not in builtSettlements or intersectionToUpgrade.settlement.scale == 2:
+        if vertexToUgrade.settlement not in builtSettlements or vertexToUpgrade.settlement.scale == 2:
             return 1
         for settlement in self.unbuiltSettlements:
             if settlement.scale == 2:
                 self.unbuiltSettlements.remove(settlement)
                 self.builtSettlements.append(settlement)
-                self.builtSettlements.remove(intersection.settlement)
-                self.unbuiltSettlements.append(intersection.settlement)
-                intersection.settlement = settlement
+                self.builtSettlements.remove(vertex.settlement)
+                self.unbuiltSettlements.append(vertex.settlement)
+                vertex.settlement = settlement
                 self.cardsInHand[grain] -= 2
                 self.cardsInHand[ore] -= 3
                 return 0
         return 1
     
-    def build_road(self, intersection1, intersection2, longestRoad):
+    def build_road(self, vertex1, vertex2, longestRoad):
         if self.cardsInHand[lumber] == 0 or self.cardsInHand[clay] == 0 or self.unbuiltRoads == []:
             return 1
-        if intersection1 not in intersection2.adjacentIntersections:
+        if vertex1 not in vertex2.adjacentVertices:
             return 1
-        if intersection1.roads != []:
-            for road in intersection1.roads:
-                if road.intersection1 == intersection2 or road.intersection2 == intersection2:
+        if vertex1.roads != []:
+            for road in vertex1.roads:
+                if road.vertex1 == vertex2 or road.vertex2 == vertex2:
                     return 1
         newRoad = self.unbuiltRoads[0]
         self.unbuiltRoads.remove(newRoad)
         self.builtRoads.append(newRoad)
-        newRoad.intersection1 = intersection1
-        intersection1.roads.append(newRoad)
-        newRoad.intersection2 = intersection2
-        intersection2.raods.append(newRoad)
+        newRoad.vertex1 = vertex1
+        vertex1.roads.append(newRoad)
+        newRoad.vertex2 = vertex2
+        vertex2.raods.append(newRoad)
         self.cardsInHand[lumber] -= 1
         self.cardsInHand[clay] -= 1
         longestRoad.determine_owner()
@@ -213,9 +213,9 @@ class Player(object):
         else:
             return 1
                 
-    def play_road_building(self, intersectionPair1, intersectionPair2):
+    def play_road_building(self, vertexPair1, vertexPair2):
         if "Road Building" in self.developmentCards:
-            for pair in [intersectionPair1, intersectionPair2]:
+            for pair in [vertexPair1, vertexPair2]:
                 if self.roadsRemaining > 0:
                     if len(pair) > 1:
                         self.build_road(pair[0], pair[1])
@@ -301,28 +301,30 @@ class Longest_Road(object):
             self.owner.hasLongestRoad = True
             self.size = newSize
     
-    def explore_players_roads(playerExploring, entryRoad, roadLength, countedRoads, lastIntersection):
+    def explore_players_roads(playerExploring, entryRoad, roadLength, countedRoads, lastVertex):
         countedRoads.append(entryRoad)
         roadLength += 1
         newLengths = []
-        intersectionList = [entryRoad.intersection1, entryRoad.intersection2]
-        if lastIntersection != "":
-            intersectionList.remove(lastIntersection)
-        for currentIntersection in intersectionList:
-            if currentIntersection.settlement.owner == playerExploring or currentIntersection.settlement.owner == None:
-                roadList = [someRoad for someRoad in currentIntersection.roads if someRoad not in countedRoads]
+        vertexList = [entryRoad.vertex1, entryRoad.vertex2]
+        if lastVertex != "":
+            vertexList.remove(lastVertex)
+        for currentVertex in vertexList:
+            if currentVertex.settlement.owner == playerExploring or currentVertex.settlement.owner == None:
+                roadList = [someRoad for someRoad in currentVertex.roads if someRoad not in countedRoads]
                 if roadList != []:
                     for branchRoad in roadList:
-                        newLengths.append(explore_players_roads(playerExploring, branchRoad, roadLength, countedRoads, currentIntersection))
+                        newLengths.append(explore_players_roads(playerExploring, branchRoad, roadLength, countedRoads, currentVertex))
         return max([roadLength] + newLengths)
 
 
 # The deck of undrawn development cards
 # Has the shuffled list of cards
 # Function for drawing a card from the deck
-class Development_Card_Deck(object):
-    def __init__(self):
-        self.cardList = ["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] * 5
+class Card_Deck(object):
+    def __init__(self, cardList):
+        self.cardList = cardList
+        # For development cards, should be: ["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] * 5
+        # For resources cards, should be 19 of each resource
         random.shuffle(self.cardList)
     
     def draw(self):
