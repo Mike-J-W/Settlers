@@ -19,7 +19,7 @@ class Hex(object):
             self.hasRobber = True
 
 
-# A vertice between hexes and/or coasts
+# A vertex between hexes and/or coasts
 # Has list of adjacent hexes, list of adjacent roads, town/city object, and port info
 class Vertex(object):
     def __init__(self, hexList, port, adjacentVertices):
