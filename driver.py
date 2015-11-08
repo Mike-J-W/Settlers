@@ -24,13 +24,13 @@ def main():
     ports = [Port(resource, 2) for resource in resourceTypes]
     ports += [Port("All", 3)] * 4
     vertices = []
-    for x in range(54):
-        newVertex = Vertex([], None, [])
+    for x in range(54):     # Set up the vertices, noting the sequential relationships
+        newVertex = Vertex()
         if x != 0 and x != 7 and x != 16 and x != 27 and x != 38 and x != 47:
             newVertex.adjacentVertices.append(vertices[x-1])
             vertices[x-1].adjacentVertices.append(newVertex)
         vertices.append(newVertex)
-    for x in range(46):
+    for x in range(46):     # Complete the adjacency relationships and "place" the hexes
         if x < 7:
             if x % 2 == 0:
                 y = x + 8

@@ -22,21 +22,21 @@ class Hex(object):
 # A vertex between hexes and/or coasts
 # Has list of adjacent hexes, list of adjacent roads, town/city object, and port info
 class Vertex(object):
-    def __init__(self, hexList, port, adjacentVertices):
-        self.hexes = hexList
-        self.port = port
+    def __init__(self):
+        self.hexes = []
+        self.port = None
         self.settlement = None
         self.roads = []
         self.canBeSettled = True
-        self.adjacentVertices = adjacentVertices
+        self.adjacentVertices = []
 
 
 # A town or citiy placed on the vertices
 # Has scale (1 for town, 2 for city), owner of settlement, and location
 # Function for determining the resources yieled by a dice roll
 class Settlement(object):
-    def __init__(self, player, vertex):
-        self.scale = 1
+    def __init__(self, scale, player):
+        self.scale = scale
         self.owner = player
         self.vertex = None
     
@@ -51,10 +51,10 @@ class Settlement(object):
 # A road connecting settlements
 # Has owner of road, and the vertices on both ends of the road
 class Road(object):
-    def __init__(self, player, vertex1, vertex2):
+    def __init__(self, player):
         self.owner = player
-        self.vertex1 = vertex1
-        self.vertex2 = vertex2
+        self.vertex1 = None
+        self.vertex2 = None
 
 
 # A port along the coast
@@ -100,9 +100,10 @@ class Player(object):
         self.color = color
         self.points = 0
         self.builtSettlements = []
-        self.unbuiltSettlements = []
+        self.unbuiltSettlements = [newSettlement(1, self)] * 5
+        self.unbuiltSettlements += [newSettlement(2, self)] * 4
         self.builtRoads = []
-        self.unbuiltRoads = []
+        self.unbuiltRoads = [newRoad(self)] * 15
         self.developmentCards = []
         self.armySize = 0
         self.hasLongestRoad = False
