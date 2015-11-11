@@ -1,12 +1,8 @@
 from pieces import *
 import random
 import pygame
+import math
 
-
-def make_map():
-    edgeLength = 10
-    angleSize = 120
-    
 
 
 def main():
@@ -20,12 +16,6 @@ def main():
     ore = "Ore"
     # A list of the resources in the game
     resourceTypes = [lumber, grain, wool, clay, ore]
-    # A list representing the number of hexes per resource
-    resourcesForHexes = [lumber] * 4 + [grain] * 4 + [wool] * 4 + [clay] * 3 + [ore] * 3
-    # A list of the numbered, circular tiles denoting times of harvest
-    oddsTiles = [2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12]
-    # Shuffle the order of the list of numbered tiles, so that they can be assigned to the hexes randomly
-    random.shuffle(oddsTiles)
     # A list with one element per development card
     developmentDeck = Card_Deck(["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] * 5)
     # A dictionary to hold the decks of resources, keyed to their resource name
@@ -33,20 +23,44 @@ def main():
     # Generate each resource deck and add it to the dictionary
     for resource in resourceTypes:
         resourceDecks[resource] = [resource] * 19
+
+    # A list representing the number of hexes per resource
+    resourcesForHexes = [lumber] * 4 + [grain] * 4 + [wool] * 4 + [clay] * 3 + [ore] * 3
+    # A list of the numbered, circular tiles denoting times of harvest
+    oddsTiles = [2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12]
+    # Shuffle the order of the list of numbered tiles, so that they can be assigned to the hexes randomly
+    random.shuffle(oddsTiles)
     # A list of the hexes, assigned a resource and a numbered tile using the lists above
     hexes = [Hex(resourcesForHexes[x], oddsTiles[x]) for x in range(18)]
     # Add the desert hex
     hexes.append(Hex("Desert", 0))
     # Shuffle the list of hexes so that they can be placed on the board in a random fashion
     random.shuffle(hexes)
-    # A list of the ports on the map
-    ports = [Port(resource, 2) for resource in resourceTypes]
-    ports += [Port("All", 3)] * 4
+    # The length of a side of a hex
+    edgeLength = 10
+    # The distance from the center of a hex to the middle of an edge
+    radius = int(round(edgeLength * math.sqrt(3) / 2.0))
+    # The unadjusted coordinates of the centers of the hexes
+    baseHexCenters = [(3,1),(5,1),(7,1),(2,2),(4,2),(6,2),(8,2),(1,3),(3,3),(5,3),(7,3),(9,3),(2,4),(4,4),(6,4),(8,4),(3,5),(5,5),(7,5)]
+    # The centers of the hexes adjusted for the length of their sides
+    hexCenters = [(2 * edgeLength + baseHexCenters[i][0] * radius, (baseHexCenters[i][1] + 2) * edgeLength) for i in range(len(baseHexCenters))]
+    # "Place" the hexes by assigned the coordinates to the objects and generate list of the coordinates of the vertices using the hex coordinates
+    vertexCoords = []
+    for index, coord in enumerate(hexCenters):
+        hexes[index].coordinates = coord
+        vertexCoords.append((coord[0] - radius, coord[1] - int(round(edgeLength / 2.0))))
+        vertexCoords.append((coord[0], coord[1] - edgeLength))
+        vertexCoords.append((coord[0] + radius, coord[1] - int(round(edgeLength / 2.0))))
+    for coord in hexCenters[:-3]:
+        vertexCoords.append((coord[0] - radius, coord[1] + int(round(edgeLength / 2.0))))
+        vertexCoords.append((coord[0], coord[1] + edgeLength))
+        vertexCoords.append((coord[0] + radius, coord[1] + int(round(edgeLength / 2.0))))
+
     # A list to hold the vertices of the map
     vertices = []
     # There are 54 vertices on the map; this loop instantiates each one and relates it to the one preceding it when appropriate
     for x in range(54):
-        newVertex = Vertex()
+        newVertex = Vertex(vertexCoords[x])
         # The leftmost vertices of each row (vertices 0,7,16,27,38,47) do not have a preceding vertex adjacent to them
         if x != 0 and x != 7 and x != 16 and x != 27 and x != 38 and x != 47:
             newVertex.adjacentVertices.append(vertices[x-1])
@@ -124,6 +138,10 @@ def main():
             for i in range(3):
                 vertices[a+i].hexes.append(hexes[x])
                 vertices[b+i].hexes.append(hexes[x])
+
+    # A list of the ports on the map
+    ports = [Port(resource, 2) for resource in resourceTypes]
+    ports += [Port("All", 3)] * 4
     # Assign the ports to the appropriate vertices
     vertices[0].port = ports[5]
     vertices[1].port = ports[5]

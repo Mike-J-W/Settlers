@@ -9,7 +9,7 @@ ore = "Ore"
 
 
 # A hex piece that defines the board
-# Has resource type, number on the hex, and whether the hex has the robber on it
+# Has resource type, number on the hex, whether the hex has the robber on it, and graphical position
 class Hex(object):
     def __init__(self, resource, odds):
         self.resource = resource
@@ -17,18 +17,20 @@ class Hex(object):
         self.hasRobber = False
         if resource == "Desert":
             self.hasRobber = True
+        self.coordinates = (0,0)
 
 
 # A vertex between hexes and/or coasts
-# Has list of adjacent hexes, list of adjacent roads, town/city object, and port info
+# Has list of adjacent hexes, list of adjacent roads, town/city object, port info, and graphical position
 class Vertex(object):
-    def __init__(self):
+    def __init__(self, coordinates):
         self.hexes = []
         self.port = None
         self.settlement = None
         self.roads = []
         self.canBeSettled = True
         self.adjacentVertices = []
+        self.coordinates = coordinates
 
 
 # A town or citiy placed on the vertices
