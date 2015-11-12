@@ -48,11 +48,15 @@ def main():
     vertexCoords = []
     for index, coord in enumerate(hexCenters):
         hexes[index].coordinates = coord
-        vertexCoords.append((coord[0] - radius, coord[1] - int(round(edgeLength / 2.0))))
+        leftVertexCoord = (coord[0] - radius, coord[1] - int(round(edgeLength / 2.0)))
+        if leftVertexCoord not in vertexCoords:
+            vertexCoords.append(leftVertexCoord)
         vertexCoords.append((coord[0], coord[1] - edgeLength))
         vertexCoords.append((coord[0] + radius, coord[1] - int(round(edgeLength / 2.0))))
     for coord in hexCenters[:-3]:
-        vertexCoords.append((coord[0] - radius, coord[1] + int(round(edgeLength / 2.0))))
+        leftVertexCoord = (coord[0] - radius, coord[1] + int(round(edgeLength / 2.0)))
+        if leftVertexCoord not in vertexCoords:
+            vertexCoords.append(leftVertexCoord)
         vertexCoords.append((coord[0], coord[1] + edgeLength))
         vertexCoords.append((coord[0] + radius, coord[1] + int(round(edgeLength / 2.0))))
 
@@ -161,6 +165,7 @@ def main():
     vertices[48].port = ports[8]
     vertices[50].port = ports[0]
     vertices[51].port = ports[0]
+
 
 
 
