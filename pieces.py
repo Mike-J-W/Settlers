@@ -97,15 +97,16 @@ class Robber(object):
 #     Largest_Army, and list of resource cards in hand
 # Functions for each action a player can take during their turn
 class Player(object):
-    def __init__(self, name, color):
+    def __init__(self, name, color, isAI):
         self.name = name
         self.color = color
+        self.isAI = isAI
         self.points = 0
         self.builtSettlements = []
-        self.unbuiltSettlements = [newSettlement(1, self)] * 5
-        self.unbuiltSettlements += [newSettlement(2, self)] * 4
+        self.unbuiltSettlements = [Settlement(1, self) for x in range(5)]
+        self.unbuiltSettlements += [Settlement(2, self) for x in range(4)]
         self.builtRoads = []
-        self.unbuiltRoads = [newRoad(self)] * 15
+        self.unbuiltRoads = [Road(self) for x in range(15)]
         self.developmentCards = []
         self.armySize = 0
         self.hasLongestRoad = False

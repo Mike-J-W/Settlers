@@ -166,8 +166,51 @@ def main():
     vertices[50].port = ports[0]
     vertices[51].port = ports[0]
 
+    # Instaniate the players
+    if len(sys.argv) != 13:
+        print("Wrong number of arguments")
+        sys.exit()
+    player1 = Player(sys.argv[1], sys.argv[2], sys.argv[3])
+    player2 = Player(sys.argv[4], sys.argv[5], sys.argv[6])
+    player3 = Player(sys.argv[7], sys.argv[8], sys.argv[9])
+    player4 = Player(sys.argv[10], sys.argv[11], sys.argv[12])
+    playerList = [player1, player2, player3, player4]
+    # Shuffle the players to set the turn order
+    random.shuffle(playerList)
+    # Set up award placards
+    largestArmy = Largest_Army(playerList)
+    longestRoad = Longest_Road(playerList)
+
+    # Set up the initial settlements and roads for each player
+    print("Each player must build their first settlement and road\n")
+    for player in playerList:
+        print("For the settlement, ")
+        firstSettlementVertex = get_vertex_from_player(player, vertices)
+        player.build_town(firstSettlementVertex)
+        print("For the heading of the road from that settlement, ")
+        firstRoadDestinationVertex = get_vertex_from_player(player, vertices)
+        player.build_road(firstSettlementVertex, firstRoadDestinationVertex, longestRoad)
+    print("Each player must now build their second settlement and road\n")
+    for player in playerList[::-1]
+        print("For the settlement, ")
+        secondtSettlementVertex = get_vertex_from_player(player, vertices)
+        player.build_town(secondSettlementVertex)
+        print("For the heading of the road from that settlement, ")
+        secondRoadDestinationVertex = get_vertex_from_player(player, vertices)
+        player.build_road(secondSettlementVertex, secondRoadDestinationVertex, longestRoad)
+
+    
 
 
+
+
+def get_vertex_from_player(player, vertexList):
+    if player.isAI:
+        pass
+    else:
+        vertexIndex = input("%s please give a vertex index" % player.name)
+        vertex = vertexList[int(vertexIndex)]
+        return vertex
 
 
 if __name__ == "__main__":
