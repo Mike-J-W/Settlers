@@ -136,7 +136,7 @@ class Player(object):
     def build_city(self, vertexToUpgrade):
         if self.cardsInHand[grain] < 2 or self.cardsInHand[ore] < 3:
             return 1
-        if vertexToUgrade.settlement not in builtSettlements or vertexToUpgrade.settlement.scale == 2:
+        if vertexToUpgrade.settlement not in builtSettlements or vertexToUpgrade.settlement.scale == 2:
             return 1
         for settlement in self.unbuiltSettlements:
             if settlement.scale == 2:
