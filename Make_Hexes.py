@@ -4,12 +4,18 @@ import pygame
 import math
 import time
 
+## initalizes pygame
 pygame.init()
+## sets the size of the window that is opened
 size = width, height = 900, 750
 oceanBlue = 0, 0, 120
+## opens the window with the size specifications given
 screen = pygame.display.set_mode(size)
+## sets the background color
 screen.fill(oceanBlue)
 
+
+##  This function checks to make sure that no 6 or 8 odds tiles are directly adjacent to one another.  If they are found to be adjacent, the hexes are reshuffled and a new combination is attempted
 def reshuffle_hexes(hexes, adjacencyProblem):
     while adjacencyProblem == True:
         random.shuffle(hexes)
@@ -90,9 +96,10 @@ def reshuffle_hexes(hexes, adjacencyProblem):
 
 def main(screen):
     # Initialize all the game pieces
-    # The resource variables
     
+    ## sets the font and size
     myfont = pygame.font.SysFont("comicsansms", 25)
+    ## defines certain colors
     forestGreen = 34, 139, 34
     oceanBlue = 0, 0, 120
     wheatYellow = 244, 233, 19
@@ -103,6 +110,7 @@ def main(screen):
     black = 0,0,0
     red = 255, 0,242
     
+    # The resource variables
     lumber = "Wood"
     grain = "Wheat"
     wool = "Wool"
@@ -130,11 +138,11 @@ def main(screen):
     # Add the desert hex
     hexesPreAdjacencyCheck.append(Hex("Desert", 0))
     # Shuffle the list of hexes so that they can be placed on the board in a random fashion
-    print(hexesPreAdjacencyCheck)
+
+    # Runs the reshuffle_hexes function to ensure that no 8s or 6s are adjacent to each to other
     adjacencyProblem = True
     hexes = reshuffle_hexes(hexesPreAdjacencyCheck, adjacencyProblem)
 
-    
     
     # The length of a side of a hex  PYGAME variable
     edgeLength = 60
@@ -152,8 +160,7 @@ def main(screen):
     
 
     for index, coord in enumerate(hexCenters):
-        #print(hexes[index].resource)
-        drawingHexes = []
+        
         hexes[index].coordinates = coord
         vertexCoords.append((coord[0] - radius, coord[1] - int(round(edgeLength / 2.0))))
         vertexCoords1 = (coord[0] - radius, coord[1] - int(round(edgeLength / 2.0)))
@@ -162,26 +169,39 @@ def main(screen):
         vertexCoords.append((coord[0] + radius, coord[1] - int(round(edgeLength / 2.0))))
         vertexCoords3 = (coord[0] + radius, coord[1] - int(round(edgeLength / 2.0)))
 
+        # Populates list with top three coordinates of each hex
         drawHexPoints = [vertexCoords1,vertexCoords2, vertexCoords3]
+        
+        
         if hexes[index].resource == lumber:
+            # Calculates the bottom three coordinates from the top three and the length of each side of the hexagon
             coordFour = (coord[0] + radius, (coord[1] - int(round(edgeLength / 2.0)))+ edgeLength)
             coordFive = ((coord[0], coord[1] + edgeLength))
             coordSix = ((coord[0] - radius, coord[1] + edgeLength - int(round(edgeLength / 2.0))))
             
+            # Appends the bottom three coordinates in the proper order to the top three coordinates
             drawHexPoints.append(coordFour)
             drawHexPoints.append(coordFive)
             drawHexPoints.append(coordSix)
-            print("For lumber:")
-            print(drawHexPoints)
+            #print("For lumber:")
+            #print(drawHexPoints)
+            
+            # Draws the hexagon using the points specified with the proper color of the resource tile
             pygame.draw.polygon(screen, forestGreen, drawHexPoints, 0)
+            # Creates the string for the resource odds that will be written on the gameboard
             resourceOdds = str(hexes[index].odds)
-            print(resourceOdds," = Resource Odds")
+            #print(resourceOdds," = Resource Odds")
+            
+            # Writes the 6 and 8 resource odds tiles in a different color
             if str(resourceOdds) == "6" or str(resourceOdds) == "8":
                 label = myfont.render(str(resourceOdds), 1, red)
             else:
                 label = myfont.render(str(resourceOdds), 1, black)
 
+            # Adds the label of the odds to each hex
             screen.blit(label, (hexes[index].coordinates))
+            
+            # Updates the screen
             pygame.display.update()
         
         
@@ -192,11 +212,11 @@ def main(screen):
             drawHexPoints.append(coordFour)
             drawHexPoints.append(coordFive)
             drawHexPoints.append(coordSix)
-            print("For wool:")
-            print(drawHexPoints)
+            #print("For wool:")
+            #print(drawHexPoints)
             pygame.draw.polygon(screen, woolGreen, drawHexPoints, 0)
             resourceOdds = hexes[index].odds
-            print(resourceOdds)
+            #print(resourceOdds)
             if str(resourceOdds) == "6" or str(resourceOdds) == "8":
                 label = myfont.render(str(resourceOdds), 1, red)
             else:
@@ -211,11 +231,11 @@ def main(screen):
             drawHexPoints.append(coordFour)
             drawHexPoints.append(coordFive)
             drawHexPoints.append(coordSix)
-            print("For grain:")
-            print(drawHexPoints)
+            #print("For grain:")
+            #print(drawHexPoints)
             pygame.draw.polygon(screen, wheatYellow, drawHexPoints, 0)
             resourceOdds = hexes[index].odds
-            print(resourceOdds)
+            #print(resourceOdds)
             if str(resourceOdds) == "6" or str(resourceOdds) == "8":
                 label = myfont.render(str(resourceOdds), 1, red)
             else:
@@ -231,11 +251,11 @@ def main(screen):
             drawHexPoints.append(coordFour)
             drawHexPoints.append(coordFive)
             drawHexPoints.append(coordSix)
-            print("For clay:")
-            print(drawHexPoints)
+            #print("For clay:")
+            #print(drawHexPoints)
             pygame.draw.polygon(screen, clayColor, drawHexPoints, 0)
             resourceOdds = hexes[index].odds
-            print(resourceOdds)
+            #print(resourceOdds)
             if str(resourceOdds) == "6" or str(resourceOdds) == "8":
                 label = myfont.render(str(resourceOdds), 1, red)
             else:
@@ -251,11 +271,11 @@ def main(screen):
             drawHexPoints.append(coordFour)
             drawHexPoints.append(coordFive)
             drawHexPoints.append(coordSix)
-            print("For rock:")
-            print(drawHexPoints)
+            #print("For rock:")
+            #print(drawHexPoints)
             pygame.draw.polygon(screen, rockGray, drawHexPoints, 0)
             resourceOdds = hexes[index].odds
-            print(resourceOdds)
+            #print(resourceOdds)
             if str(resourceOdds) == "6" or str(resourceOdds) == "8":
                 label = myfont.render(str(resourceOdds), 1, red)
             else:
@@ -265,24 +285,19 @@ def main(screen):
             pygame.display.update()
 
         elif hexes[index].resource == desert:
-            print("edgeLength = ",edgeLength)
-            print("coord[0] = ",coord[0])
-            print("coord[1] = ",coord[1])
-            print("radius = ",radius)
             coordFour = (coord[0] + radius, (coord[1] - int(round(edgeLength / 2.0)))+ edgeLength)
-            print("coordFour = ", coordFour)
             coordFive = ((coord[0], coord[1] + edgeLength))
-            print("coordFive = ", coordFive)
             coordSix = ((coord[0] - radius, coord[1] + edgeLength - int(round(edgeLength / 2.0))))
-            print("coordSix = ", coordSix)
             drawHexPoints.append(coordFour)
             drawHexPoints.append(coordFive)
             drawHexPoints.append(coordSix)
-            print(drawHexPoints)
+            #print(drawHexPoints)
             pygame.draw.polygon(screen, sandyDesert, drawHexPoints, 0)
             pygame.display.update()
 
     print("Finished cycling through all hexes!")
+    
+    # waits ten seconds and then starts the whole process over again
     time.sleep(10)
 
 
