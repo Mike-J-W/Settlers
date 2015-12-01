@@ -26,16 +26,45 @@ def main():
 
     # A list representing the number of hexes per resource
     resourcesForHexes = [lumber] * 4 + [grain] * 4 + [wool] * 4 + [clay] * 3 + [ore] * 3
+    # Shuffle the list of resources so that they are accessed in random order when assigned to hexes
+    random.shuffle(resourcesForHexes)
     # A list of the numbered, circular tiles denoting times of harvest
-    oddsTiles = [2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12]
-    # Shuffle the order of the list of numbered tiles, so that they can be assigned to the hexes randomly
-    random.shuffle(oddsTiles)
+    odds = [6,6,8,8,2,3,3,4,4,5,5,9,9,10,10,11,11,12]
+    # A list of the indices of the odds tiles
+    indices = range(19)
+    # A list of hexes adjacent to the hex represented by the index of the larger list (e.g. hex 0 is adjacent to hexes [1,3,4])
+    adjacents = [[1,3,4],[0,2,4,5],[1,5,6],[0,4,7,8],[0,1,3,5,8,9],[1,2,4,6,9,10],[2,5,10,11],[3,8,12],[3,4,7,9,12,13],[4,5,8,10,13,14],[5,6,9,11,14,15],[6,10,15],[7,8,13,16],[8,9,12,14,16,17],[9,10,13,15,17,18],[10,11,14,18],[12,13,17],[13,14,16,18],[14,15,17]]
+    # A list to hold the odds tiles placed in random order
+    oddsOrdered = [0] * 19
+    # Loop through the odds to place each in oddsOrdered
+    for o in odds:
+        # A flag to determine if a place was found for the odd
+        oddPlaced = False
+        # Keep trying to place the odd until successful
+        while not oddPlaced:
+            # Pick an index from those still available
+            newIndex = random.choice(indices)
+            # Start by assuming the index is valid
+            goodIndex = True
+            # If the odd is 6 or 8, check that it would not be placed on a hex adjacent to another 6 or 8
+            if o == 6 or o == 8:
+                # Look at the hexes adjacent to the hex of the currently chosen index
+                for i in adjacents[newIndex]:
+                    # Check if that hex has a 6 or 8
+                    if oddsOrdered[i] == 6 or oddsOrdered[i] == 8:
+                        # If so, don't use that index
+                        goodIndex = False
+                        break
+            # If the index is valid, assign the odd to that index in the ordered odds list and remove the index from the list as seen by later iterations of the loop
+            if goodIndex:
+                oddsOrdered[newIndex] = o
+                indices.remove(newIndex)
+                oddPlaced = True
+    # Get the index of the 0-odd tile and insert "Desert" at that index in the resources list
+    desertIndex = oddsOrdered.index(0)
+    resourcesForHexes.insert(desertIndex, "Desert")
     # A list of the hexes, assigned a resource and a numbered tile using the lists above
-    hexes = [Hex(resourcesForHexes[x], oddsTiles[x]) for x in range(18)]
-    # Add the desert hex
-    hexes.append(Hex("Desert", 0))
-    # Shuffle the list of hexes so that they can be placed on the board in a random fashion
-    random.shuffle(hexes)
+    hexes = [Hex(resourcesForHexes[x], oddsOrdered[x]) for x in range(19)]
     # The length of a side of a hex
     edgeLength = 10
     # The distance from the center of a hex to the middle of an edge
