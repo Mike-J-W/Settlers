@@ -2,7 +2,7 @@ from pieces import *
 import random
 import pygame
 import math
-
+import sys
 
 
 def main():
@@ -31,7 +31,7 @@ def main():
     # A list of the numbered, circular tiles denoting times of harvest
     odds = [6,6,8,8,2,3,3,4,4,5,5,9,9,10,10,11,11,12]
     # A list of the indices of the odds tiles
-    indices = range(19)
+    indices = [0] * 19
     # A list of hexes adjacent to the hex represented by the index of the larger list (e.g. hex 0 is adjacent to hexes [1,3,4])
     adjacents = [[1,3,4],[0,2,4,5],[1,5,6],[0,4,7,8],[0,1,3,5,8,9],[1,2,4,6,9,10],[2,5,10,11],[3,8,12],[3,4,7,9,12,13],[4,5,8,10,13,14],[5,6,9,11,14,15],[6,10,15],[7,8,13,16],[8,9,12,14,16,17],[9,10,13,15,17,18],[10,11,14,18],[12,13,17],[13,14,16,18],[14,15,17]]
     # A list to hold the odds tiles placed in random order
@@ -197,13 +197,30 @@ def main():
 
     # Instaniate the players
     if len(sys.argv) != 13:
-        print("Wrong number of arguments")
+        print("Wrong number of arguments (name, color, isAI four times)")
         sys.exit()
-    player1 = Player(sys.argv[1], sys.argv[2], sys.argv[3])
-    player2 = Player(sys.argv[4], sys.argv[5], sys.argv[6])
-    player3 = Player(sys.argv[7], sys.argv[8], sys.argv[9])
-    player4 = Player(sys.argv[10], sys.argv[11], sys.argv[12])
+    p1AI = False
+    p2AI = False
+    p3AI = False
+    p4AI = False
+    trueOpts = ["True", "true", "T", "t"]
+    if sys.argv[3] in trueOpts:
+        p1AI = True
+    player1 = Player(sys.argv[1], sys.argv[2], p1AI)
+    if sys.argv[6] in trueOpts:
+        p2AI = True
+    player2 = Player(sys.argv[4], sys.argv[5], p2AI)
+    if sys.argv[9] in trueOpts:
+        p3AI = True
+    player3 = Player(sys.argv[7], sys.argv[8], p3AI)
+    if sys.argv[12] in trueOpts:
+        p4AI = True
+    player4 = Player(sys.argv[10], sys.argv[11], p4AI)
     playerList = [player1, player2, player3, player4]
+    # Give the players enough cards to build their first settlements and roads
+    startingHand = [grain, wool] * 2 + [clay, lumber] * 4
+    for player in playerList:
+        player.draw_cards(startingHand)
     # Shuffle the players to set the turn order
     random.shuffle(playerList)
     # Set up award placards
@@ -213,20 +230,40 @@ def main():
     # Set up the initial settlements and roads for each player
     print("Each player must build their first settlement and road\n")
     for player in playerList:
-        print("For the settlement, ")
-        firstSettlementVertex = get_vertex_from_player(player, vertices)
-        player.build_town(firstSettlementVertex)
-        print("For the heading of the road from that settlement, ")
-        firstRoadDestinationVertex = get_vertex_from_player(player, vertices)
-        player.build_road(firstSettlementVertex, firstRoadDestinationVertex, longestRoad)
-    print("Each player must now build their second settlement and road\n")
-    for player in playerList[::-1]
-        print("For the settlement, ")
-        secondtSettlementVertex = get_vertex_from_player(player, vertices)
-        player.build_town(secondSettlementVertex)
-        print("For the heading of the road from that settlement, ")
-        secondRoadDestinationVertex = get_vertex_from_player(player, vertices)
-        player.build_road(secondSettlementVertex, secondRoadDestinationVertex, longestRoad)
+        validInput = False
+        while not validInput:
+            print("For the settlement, ")
+            firstSettlementVertex = get_vertex_from_player(player, vertices)
+            if player.build_town(firstSettlementVertex) != 0:
+                print("A settlement cannot be built on that vertex.  Please choose another.")
+            else:
+                validInput = True
+        validInput = False
+        while not validInput:
+            print("For the heading of the road from that settlement, ")
+            firstRoadDestinationVertex = get_vertex_from_player(player, vertices)
+            if player.build_road(firstSettlementVertex, firstRoadDestinationVertex, longestRoad) != 0:
+                print("A road cannot be built along that path.  Please choose another.")
+            else:
+                validInput = True
+    print("\nEach player must now build their second settlement and road")
+    for player in playerList[::-1]:
+        validInput = False
+        while not validInput:
+            print("For the settlement, ")
+            secondSettlementVertex = get_vertex_from_player(player, vertices)
+            if player.build_town(secondSettlementVertex) != 0:
+                print("A settlement cannot be built on that vertex.  Please choose another.")
+            else:
+                validInput = True
+        validInput = False
+        while not validInput:
+            print("For the heading of the road from that settlement, ")
+            secondRoadDestinationVertex = get_vertex_from_player(player, vertices)
+            if player.build_road(secondSettlementVertex, secondRoadDestinationVertex, longestRoad) != 0:
+                print("A road cannot be built along that path.  Please choose another.")
+            else:
+                validInput = True
 
     
 
@@ -235,9 +272,9 @@ def main():
 
 def get_vertex_from_player(player, vertexList):
     if player.isAI:
-        pass
+       pass
     else:
-        vertexIndex = input("%s please give a vertex index" % player.name)
+        vertexIndex = input("%s please give a vertex index: " % player.name)
         vertex = vertexList[int(vertexIndex)]
         return vertex
 

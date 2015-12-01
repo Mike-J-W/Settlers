@@ -117,9 +117,11 @@ class Player(object):
         townCost = [grain, wool, clay, lumber]
         for resource in townCost:
             if self.cardsInHand[resource] == 0:
-                return 1
-        if not vertexToSettle.canBeSettled or self.unbuiltSettlements == []:
-            return 1
+                return 2
+        if not vertexToSettle.canBeSettled:
+            return 3
+        if self.unbuiltSettlements == []:
+            return 4
         for settlement in self.unbuiltSettlements:
             if settlement.scale == 1:
                 self.unbuiltSettlements.remove(settlement)
@@ -165,7 +167,7 @@ class Player(object):
         newRoad.vertex1 = vertex1
         vertex1.roads.append(newRoad)
         newRoad.vertex2 = vertex2
-        vertex2.raods.append(newRoad)
+        vertex2.roads.append(newRoad)
         self.cardsInHand[lumber] -= 1
         self.cardsInHand[clay] -= 1
         longestRoad.determine_owner()
@@ -291,7 +293,7 @@ class Longest_Road(object):
         newOwner = self.owner
         newSize = self.size
         for player in self.players:
-            maxRoadLength
+            maxRoadLength = 0
             for road in player.builtRoads:
                 roadLength = self.explore_players_roads(player, road, 0, [], "")
                 if roadLength > maxRoadLength:
@@ -305,7 +307,7 @@ class Longest_Road(object):
             self.owner.hasLongestRoad = True
             self.size = newSize
     
-    def explore_players_roads(playerExploring, entryRoad, roadLength, countedRoads, lastVertex):
+    def explore_players_roads(self, playerExploring, entryRoad, roadLength, countedRoads, lastVertex):
         countedRoads.append(entryRoad)
         roadLength += 1
         newLengths = []
@@ -313,11 +315,11 @@ class Longest_Road(object):
         if lastVertex != "":
             vertexList.remove(lastVertex)
         for currentVertex in vertexList:
-            if currentVertex.settlement.owner == playerExploring or currentVertex.settlement.owner == None:
+            if currentVertex.settlement == None or currentVertex.settlement.owner == playerExploring:
                 roadList = [someRoad for someRoad in currentVertex.roads if someRoad not in countedRoads]
                 if roadList != []:
                     for branchRoad in roadList:
-                        newLengths.append(explore_players_roads(playerExploring, branchRoad, roadLength, countedRoads, currentVertex))
+                        newLengths.append(self.explore_players_roads(playerExploring, branchRoad, roadLength, countedRoads, currentVertex))
         return max([roadLength] + newLengths)
 
 
