@@ -11,13 +11,16 @@ ore = "Ore"
 # A hex piece that defines the board
 # Has resource type, number on the hex, whether the hex has the robber on it, and graphical position
 class Hex(object):
-    def __init__(self, resource, odds):
+    def __init__(self, resource, odds, color):
         self.resource = resource
         self.odds = odds
+        self.color = color
+        self.vertices = []
         self.hasRobber = False
         if resource == "Desert":
             self.hasRobber = True
         self.coordinates = (0,0)
+        self.vertexCoordinates = []
 
 
 # A vertex between hexes and/or coasts
@@ -65,6 +68,8 @@ class Port(object):
     def __init__(self, resources, rate):
         self.resources = resources
         self.rate = rate
+        self.cordinates = (0,0)
+        self.vertices = []
 
 
 # The Robber piece
