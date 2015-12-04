@@ -1,5 +1,6 @@
-
+import math
 import random
+import pygame
 
 lumber = "Wood"
 grain = "Wheat"
@@ -11,16 +12,19 @@ ore = "Ore"
 # A hex piece that defines the board
 # Has resource type, number on the hex, whether the hex has the robber on it, and graphical position
 class Hex(object):
-    def __init__(self, resource, odds, color):
+    def __init__(self, resource, odds, color, coordinates, edgeLength):
         self.resource = resource
         self.odds = odds
         self.color = color
-        self.vertices = []
+        self.edgeLength = edgeLength
+        self.radius = int(round(self.edgeLength * math.sqrt(3) / 2.0))
+        self.vertices = [None, None, None, None, None, None]
         self.hasRobber = False
         if resource == "Desert":
             self.hasRobber = True
-        self.coordinates = (0,0)
-        self.vertexCoordinates = []
+        self.coordinates = coordinates
+        # Set the coordinates of the vertices, starting with the upper left and moving in a clockwise direction
+        self.vertexCoordinates = [(self.coordinates[0] - self.radius, self.coordinates[1] - int(round(self.edgeLength / 2.0))), (self.coordinates[0], self.coordinates[1] - self.edgeLength), (self.coordinates[0] + self.radius, self.coordinates[1] - int(round(self.edgeLength / 2.0))), (self.coordinates[0] + self.radius, self.coordinates[1] + int(round(self.edgeLength / 2.0))), (self.coordinates[0], self.coordinates[1] + self.edgeLength), (self.coordinates[0] - self.radius, self.coordinates[1] + int(round(self.edgeLength / 2.0)))]
 
 
 # A vertex between hexes and/or coasts
@@ -40,10 +44,11 @@ class Vertex(object):
 # Has scale (1 for town, 2 for city), owner of settlement, and location
 # Function for determining the resources yieled by a dice roll
 class Settlement(object):
-    def __init__(self, scale, player):
+    def __init__(self, scale, player, edgeLength):
         self.scale = scale
         self.owner = player
         self.vertex = None
+        self.edgeLength = edgeLength
     
     def find_yield(self, roll):
         yieldedResources = []
@@ -52,14 +57,24 @@ class Settlement(object):
                 yieldedResources += self.scale * [hexElement.resource]
         return yieldedResources
 
+    def draw_settlement(self, screen):
+        if self.scale == 1:
+            pygame.draw.rect(screen, self.owner.color, pygame.Rect(self.vertex.coordinates[0] - self.edgeLength / 2, self.vertex.coordinates[1] - self.edgeLength / 2, self.edgeLength, self.edgeLength))
+        else:
+            pass
+
 
 # A road connecting settlements
 # Has owner of road, and the vertices on both ends of the road
 class Road(object):
-    def __init__(self, player):
+    def __init__(self, player, length):
         self.owner = player
         self.vertex1 = None
         self.vertex2 = None
+        self.length = length
+
+    def draw_road(self, screen):
+        pass
 
 
 # A port along the coast
@@ -102,31 +117,31 @@ class Robber(object):
 #     Largest_Army, and list of resource cards in hand
 # Functions for each action a player can take during their turn
 class Player(object):
-    def __init__(self, name, color, isAI):
+    def __init__(self, name, color, isAI, settlementEdgeLength, roadLength):
         self.name = name
-        self.color = color
+        self.color = 255, 0, 242
         self.isAI = isAI
         self.points = 0
         self.builtSettlements = []
-        self.unbuiltSettlements = [Settlement(1, self) for x in range(5)]
-        self.unbuiltSettlements += [Settlement(2, self) for x in range(4)]
+        self.unbuiltSettlements = [Settlement(1, self, settlementEdgeLength) for x in range(5)]
+        self.unbuiltSettlements += [Settlement(2, self, settlementEdgeLength) for x in range(4)]
         self.builtRoads = []
-        self.unbuiltRoads = [Road(self) for x in range(15)]
+        self.unbuiltRoads = [Road(self, roadLength) for x in range(15)]
         self.developmentCards = []
         self.armySize = 0
         self.hasLongestRoad = False
         self.hasLargestArmy = False
         self.cardsInHand = {wool: 0, grain: 0, lumber: 0, clay: 0, ore: 0}
     
-    def build_town(self, vertexToSettle):
+    def build_town(self, vertexToSettle, screen):
         townCost = [grain, wool, clay, lumber]
         for resource in townCost:
             if self.cardsInHand[resource] == 0:
-                return 2
+                return (2, "%s does not have enough resources to build a town." % self.name)
         if not vertexToSettle.canBeSettled:
-            return 3
+            return (3, "That vertex cannot be built upon.")
         if self.unbuiltSettlements == []:
-            return 4
+            return (4, "%s does not have any towns to build.")
         for settlement in self.unbuiltSettlements:
             if settlement.scale == 1:
                 self.unbuiltSettlements.remove(settlement)
@@ -137,8 +152,9 @@ class Player(object):
                     vertex.canBeSettled = False
                 for resource in townCost:
                     self.cardsInHand[resource] -= 1
-                return 0
-        return 1
+                settlement.draw_settlement(screen)
+                return (0, "Success!")
+        return (1, "Failed to build the town for an unknown reason.")
     
     def build_city(self, vertexToUpgrade):
         if self.cardsInHand[grain] < 2 or self.cardsInHand[ore] < 3:
@@ -157,15 +173,17 @@ class Player(object):
                 return 0
         return 1
     
-    def build_road(self, vertex1, vertex2, longestRoad):
+    def build_road(self, vertex1, vertex2, longestRoad, screen):
         if self.cardsInHand[lumber] == 0 or self.cardsInHand[clay] == 0 or self.unbuiltRoads == []:
-            return 1
+            return (2, "%s does not have enough resources to build a road." % self.name)
         if vertex1 not in vertex2.adjacentVertices:
-            return 1
+            return (3, "Those vertices are not adjacent.")
         if vertex1.roads != []:
             for road in vertex1.roads:
                 if road.vertex1 == vertex2 or road.vertex2 == vertex2:
-                    return 1
+                    return (4, "A road already exists along that path.")
+        if self.unbuiltRoads == []:
+            return (5, "%s does not have any roads to build" % self.name)
         newRoad = self.unbuiltRoads[0]
         self.unbuiltRoads.remove(newRoad)
         self.builtRoads.append(newRoad)
@@ -176,7 +194,8 @@ class Player(object):
         self.cardsInHand[lumber] -= 1
         self.cardsInHand[clay] -= 1
         longestRoad.determine_owner()
-        return 0
+        newRoad.draw_road(screen)
+        return (0, "Success!")
     
     def buy_development_card(self, deck):
         if ore in self.cardsInHand and grain in self.cardsInHand and wool in self.cardsInHand:
