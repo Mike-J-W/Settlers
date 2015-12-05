@@ -59,6 +59,7 @@ class Settlement(object):
 
     def draw_settlement(self, screen):
         if self.scale == 1:
+#            pygame.draw.rect(screen, (0,0,0), pygame.Rect(self.vertex.coordinates[0] - self.edgeLength / 2 - 1, self.vertex.coordinates[1] - self.edgeLength / 2 - 1, self.edgeLength + 2, self.edgeLength + 2))
             pygame.draw.rect(screen, self.owner.color, pygame.Rect(self.vertex.coordinates[0] - self.edgeLength / 2, self.vertex.coordinates[1] - self.edgeLength / 2, self.edgeLength, self.edgeLength))
         else:
             pass
@@ -67,14 +68,15 @@ class Settlement(object):
 # A road connecting settlements
 # Has owner of road, and the vertices on both ends of the road
 class Road(object):
-    def __init__(self, player, length):
+    def __init__(self, player, width):
         self.owner = player
         self.vertex1 = None
         self.vertex2 = None
-        self.length = length
+        self.width = width
 
     def draw_road(self, screen):
-        pass
+#        pygame.draw.line(screen, (0,0,0), self.vertex1.coordinates, self.vertex2.coordinates, self.width + 1)
+        pygame.draw.line(screen, self.owner.color, self.vertex1.coordinates, self.vertex2.coordinates, self.width)
 
 
 # A port along the coast
@@ -117,16 +119,16 @@ class Robber(object):
 #     Largest_Army, and list of resource cards in hand
 # Functions for each action a player can take during their turn
 class Player(object):
-    def __init__(self, name, color, isAI, settlementEdgeLength, roadLength):
+    def __init__(self, name, color, isAI, settlementEdgeLength, roadWidth):
         self.name = name
-        self.color = 255, 0, 242
+        self.color = color
         self.isAI = isAI
         self.points = 0
         self.builtSettlements = []
         self.unbuiltSettlements = [Settlement(1, self, settlementEdgeLength) for x in range(5)]
         self.unbuiltSettlements += [Settlement(2, self, settlementEdgeLength) for x in range(4)]
         self.builtRoads = []
-        self.unbuiltRoads = [Road(self, roadLength) for x in range(15)]
+        self.unbuiltRoads = [Road(self, roadWidth) for x in range(15)]
         self.developmentCards = []
         self.armySize = 0
         self.hasLongestRoad = False

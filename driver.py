@@ -30,12 +30,19 @@ def main():
     sandyDesert = 211, 208, 143
     black = 0,0,0
     red = 255, 0,242
+    playerRed = 213, 5, 46
+    playerBlue = 102, 207, 245
+    playerGreen = 90, 206, 48
+    playerPurple = 149, 58, 172
+    playerWhite = 255, 255, 255
+    playerOrange = 255, 182, 71
+    playerColors = {"red": playerRed, "blue": playerBlue, "green": playerGreen, "purple": playerPurple, "white": playerWhite, "orange": playerOrange}
     # The length of a side of a hex  PYGAME variable
     hexEdgeLength = 60
     # The width of a town
-    settlementEdgeLength = hexEdgeLength / 4
-    # The length of a road
-    roadLength = hexEdgeLength
+    settlementEdgeLength = int(round(hexEdgeLength / 4))
+    # The width of a road
+    roadWidth = int(round(settlementEdgeLength / 3))
     # The resource variables
     lumber = "Wood"
     grain = "Wheat"
@@ -103,29 +110,36 @@ def main():
     hexCenters = [(2 * hexEdgeLength + baseHexCenters[i][0] * radius, (baseHexCenters[i][1] + 2) * hexEdgeLength) for i in range(len(baseHexCenters))]
     # A list of the hexes, assigned a resource and a numbered tile using the lists above
     hexes = [Hex(resourcesForHexes[x], oddsOrdered[x], resourceToColor[resourcesForHexes[x]], hexCenters[x], hexEdgeLength) for x in range(19)]
-    
+    # Iterate over the hexes and create Vertex objects using the coordinates of their vertices
     vertices = []
     vertexCoordsSeen = []
+    # Loop over the top 3 rows of hexes
     for hex in hexes[:12]:
+        # Loop over the coordinates of the upper 3 vertices
         for index, coord in enumerate(hex.vertexCoordinates[:3]):
+            # Check that this is a new vertex coordinate
             if coord not in vertexCoordsSeen:
-                vertexCoordsSeen.append(coord)
-                newVertex = Vertex(coord)
-                if newVertex not in vertices:
-                    if index != 0:
-                        vertices[-1].adjacentVertices.append(newVertex)
-                        newVertex.adjacentVertices.append(vertices[-1])
-                    vertices.append(newVertex)
+                vertexCoordsSeen.append(coord)  # Record this vertex position
+                newVertex = Vertex(coord)       # Create a new Vertex object at these coordinates
+                # Check that the vertex is not the upper-left vertex of the hex
+                # If not, record that this vertex is adjacent to the previous vertex
+                if index != 0:
+                    vertices[-1].adjacentVertices.append(newVertex)
+                    newVertex.adjacentVertices.append(vertices[-1])
+                # Add the vertex to the list of vertices
+                vertices.append(newVertex)
+    # Repeat the loop above for the bottom three rows of hexes
     for hex in hexes[7:]:
-        for index, coord in enumerate(hex.vertexCoordinates[3:]):
+        # Use the lower 3 coordinates here
+        for index, coord in enumerate(hex.vertexCoordinates[3:][::-1]):
             if coord not in vertexCoordsSeen:
                 vertexCoordsSeen.append(coord)
                 newVertex = Vertex(coord)
-                if newVertex not in vertices:
-                    if index != 0:
-                        vertices[-1].adjacentVertices.append(newVertex)
-                        newVertex.adjacentVertices.append(vertices[-1])
-                    vertices.append(newVertex)
+                if index != 0:
+                    vertices[-1].adjacentVertices.append(newVertex)
+                    newVertex.adjacentVertices.append(vertices[-1])
+                vertices.append(newVertex)
+    # Loop through the vertices and relate them to the hexes they touch
     for vertex in vertices:
         for hex in hexes:
             if vertex not in hex.vertices and vertex.coordinates in hex.vertexCoordinates:
@@ -134,6 +148,7 @@ def main():
                 vertex.hexes.append(hex)
                 if len(vertex.hexes) == 3:
                     break
+    # Loop through the hexes and relate vertices that are vertically adjacent
     for hex in hexes:
         if hex.vertices[0] not in hex.vertices[5].adjacentVertices:
             hex.vertices[0].adjacentVertices.append(hex.vertices[5])
@@ -173,6 +188,8 @@ def main():
     vertices[50].port = ports[0]
     vertices[51].port = ports[0]
     ports[0].vertices = [vertices[50], vertices[51]]
+    # Create the Robber
+    robber = Robber(hexes[desertIndex])
 
     # Instaniate the players
     if len(sys.argv) != 13:
@@ -185,16 +202,16 @@ def main():
     trueOpts = ["True", "true", "T", "t"]
     if sys.argv[3] in trueOpts:
         p1AI = True
-    player1 = Player(sys.argv[1], sys.argv[2], p1AI, settlementEdgeLength, roadLength)
+    player1 = Player(sys.argv[1], playerColors[sys.argv[2]], p1AI, settlementEdgeLength, roadWidth)
     if sys.argv[6] in trueOpts:
         p2AI = True
-    player2 = Player(sys.argv[4], sys.argv[5], p2AI, settlementEdgeLength, roadLength)
+    player2 = Player(sys.argv[4], playerColors[sys.argv[5]], p2AI, settlementEdgeLength, roadWidth)
     if sys.argv[9] in trueOpts:
         p3AI = True
-    player3 = Player(sys.argv[7], sys.argv[8], p3AI, settlementEdgeLength, roadLength)
+    player3 = Player(sys.argv[7], playerColors[sys.argv[8]], p3AI, settlementEdgeLength, roadWidth)
     if sys.argv[12] in trueOpts:
         p4AI = True
-    player4 = Player(sys.argv[10], sys.argv[11], p4AI, settlementEdgeLength, roadLength)
+    player4 = Player(sys.argv[10], playerColors[sys.argv[11]], p4AI, settlementEdgeLength, roadWidth)
     playerList = [player1, player2, player3, player4]
     # Give the players enough cards to build their first settlements and roads
     startingHand = [grain, wool] * 2 + [clay, lumber] * 4
@@ -222,6 +239,7 @@ def main():
                     else:
                         label = myfont.render(resourceOdds, 1, black)
                     screen.blit(label, (hex.coordinates))
+        
             pygame.display.flip()
             boardBuilt = True
 
@@ -233,8 +251,8 @@ def main():
                 print("")
                 while not validInput:
                     print("For the settlement, ")
-                    firstSettlementVertex = get_vertex_from_player(player, vertices)
-                    buildResult = player.build_town(firstSettlementVertex, screen)
+                    settlementVertex = get_vertex_from_player(player, vertices)
+                    buildResult = player.build_town(settlementVertex, screen)
                     if buildResult[0] != 0:
                         print(buildResult[1] + "  Please try again")
                     else:
@@ -243,13 +261,25 @@ def main():
                 validInput = False
                 while not validInput:
                     print("For the heading of the road from that settlement, ")
-                    firstRoadDestinationVertex = get_vertex_from_player(player, vertices)
-                    buildResult = player.build_road(firstSettlementVertex, firstRoadDestinationVertex, longestRoad, screen)
+                    roadDestinationVertex = get_vertex_from_player(player, vertices)
+                    buildResult = player.build_road(settlementVertex, roadDestinationVertex, longestRoad, screen)
                     if buildResult[0] != 0:
                         print(buildResult[1] + "  Please try again")
                     else:
                         validInput = True
+                        pygame.display.update()
             initialSettlementsBuilt = True
+        
+        for player in playerList:
+            # play knight before roll if desired
+            playKnightFirst = get_knight_choice_from_player(player)
+            if playKnightFirst:
+                knightResult = get_knight_play_from_player(player, robber, newHex, playerToRob, largestArmy)
+            # roll dice
+            if choice == "r":
+                diceResult = roll_dice()
+
+            # build and/or trade and/or play Dev Card
 
         # waits ten seconds and then starts the whole process over again
         time.sleep(1)
@@ -259,15 +289,42 @@ def main():
 
 
 
+def get_knight_play_from_player(player, robber, newHex, playerToRob, largestArmy):
+    if player.isAI:
+        pass
+    else:
+        s
 
+def roll_dice():
+    die1 = random.randint(1,6)
+    die2 = random.randint(1,6)
+    return die1 + die2
 
+def get_knight_choice_from_player(player):
+    if player.isAI:
+        pass
+    else:
+        choice = input("%s enter k to play a Knight before the roll or enter r to roll now: " % player.name)
+        if choice != "r" and choice != "k":
+            choice = get_knight_choice_from_player(player)
+        if choice == "r":
+            return False
+        else:
+            return True
 
 def get_vertex_from_player(player, vertexList):
     if player.isAI:
        pass
     else:
         vertexIndex = input("%s please give a vertex index: " % player.name)
-        vertex = vertexList[int(vertexIndex)]
+        try:
+            vertex = vertexList[int(vertexIndex)]
+        except IndexError:
+            print("That vertex is out of the range of valid vertices")
+            vertex = get_vertex_from_player(player, vertexList)
+        except ValueError:
+            print("That entry was not an integer.")
+            vertex = get_vertex_from_player(player, vertexList)
         return vertex
 
 
