@@ -43,6 +43,8 @@ def main():
     settlementEdgeLength = int(round(hexEdgeLength / 4))
     # The width of a road
     roadWidth = int(round(settlementEdgeLength / 3))
+    # The radius of the circle denoting the Robber
+    robberRadius = int(settlementEdgeLength)
     # The resource variables
     lumber = "Wood"
     grain = "Wheat"
@@ -107,7 +109,7 @@ def main():
     # The unadjusted coordinates of the centers of the hexes
     baseHexCenters = [(3,1),(5,1),(7,1),(2,2.5),(4,2.5),(6,2.5),(8,2.5),(1,4),(3,4),(5,4),(7,4),(9,4),(2,5.5),(4,5.5),(6,5.5),(8,5.5),(3,7),(5,7),(7,7)]
     # The centers of the hexes adjusted for the length of their sides
-    hexCenters = [(2 * hexEdgeLength + baseHexCenters[i][0] * radius, (baseHexCenters[i][1] + 2) * hexEdgeLength) for i in range(len(baseHexCenters))]
+    hexCenters = [(int(2 * hexEdgeLength + baseHexCenters[i][0] * radius), int((baseHexCenters[i][1] + 2) * hexEdgeLength)) for i in range(len(baseHexCenters))]
     # A list of the hexes, assigned a resource and a numbered tile using the lists above
     hexes = [Hex(resourcesForHexes[x], oddsOrdered[x], resourceToColor[resourcesForHexes[x]], hexCenters[x], hexEdgeLength) for x in range(19)]
     # Iterate over the hexes and create Vertex objects using the coordinates of their vertices
@@ -189,7 +191,7 @@ def main():
     vertices[51].port = ports[0]
     ports[0].vertices = [vertices[50], vertices[51]]
     # Create the Robber
-    robber = Robber(hexes[desertIndex])
+    robber = Robber(hexes[desertIndex], robberRadius)
 
     # Instaniate the players
     if len(sys.argv) != 13:
@@ -239,7 +241,8 @@ def main():
                     else:
                         label = myfont.render(resourceOdds, 1, black)
                     screen.blit(label, (hex.coordinates))
-        
+                else:
+                    robber.move(hex, screen)
             pygame.display.flip()
             boardBuilt = True
 
@@ -247,37 +250,56 @@ def main():
             # Set up the initial settlements and roads for each player
             print("Each player must build their first settlements and roads.")
             for player in playerList + playerList[::-1]:
-                validInput = False
+                validAction = False
                 print("")
-                while not validInput:
+                while not validAction:
                     print("For the settlement, ")
                     settlementVertex = get_vertex_from_player(player, vertices)
                     buildResult = player.build_town(settlementVertex, screen)
                     if buildResult[0] != 0:
                         print(buildResult[1] + "  Please try again")
                     else:
-                        validInput = True
+                        validAction = True
                         pygame.display.update()
-                validInput = False
-                while not validInput:
+                validAction = False
+                while not validAction:
                     print("For the heading of the road from that settlement, ")
                     roadDestinationVertex = get_vertex_from_player(player, vertices)
                     buildResult = player.build_road(settlementVertex, roadDestinationVertex, longestRoad, screen)
                     if buildResult[0] != 0:
                         print(buildResult[1] + "  Please try again")
                     else:
-                        validInput = True
+                        validAction = True
                         pygame.display.update()
             initialSettlementsBuilt = True
         
         for player in playerList:
+            player.developmentCards.append("Knight")
             # play knight before roll if desired
-            playKnightFirst = get_knight_choice_from_player(player)
-            if playKnightFirst:
-                knightResult = get_knight_play_from_player(player, robber, newHex, playerToRob, largestArmy)
+            validAction = False
+            while not validAction:
+                playKnightFirst = get_knight_choice_from_player(player)
+                if playKnightFirst == "k":
+                    robberPlay = get_robber_play_from_player(player, robber, hexes)
+                    knightResult = player.play_knight(robber, robberPlay[0], robberPlay[1], largestArmy, screen)
+                    if knightResult[0] != 0:
+                        print(knightResult[1])
+                    else:
+                        validAction = True
+                        print(knightResult[1])
+                        pygame.display.update()
+                else:
+                    validAction = True
             # roll dice
-            if choice == "r":
-                diceResult = roll_dice()
+            diceResult = random.randint(1,6) + random.randint(1,6)
+            print("\n{} rolled a {}.".format(player.name, diceResult))
+
+            # Check if the roll was a 7, and play the Robber if so
+            if diceResult == 7:
+                robberPlay = get_robber_play_from_player(player, robber, hexes)
+                robberResult = robber.play(screen, robberPlay[0], player, robberPlay[1])
+                pygame.display.update()
+                print(robberResult)
 
             # build and/or trade and/or play Dev Card
 
@@ -289,41 +311,80 @@ def main():
 
 
 
-def get_knight_play_from_player(player, robber, newHex, playerToRob, largestArmy):
+
+def get_robber_play_from_player(player, robber, hexes):
     if player.isAI:
         pass
     else:
-        s
-
-def roll_dice():
-    die1 = random.randint(1,6)
-    die2 = random.randint(1,6)
-    return die1 + die2
+        destinationHex = robber.currentHex
+        while destinationHex == robber.currentHex:
+            print("\nChoose a new hex for the Robber.")
+            destinationHex = get_hex_from_player(player, hexes)
+        playersAvailableToRob = []
+        if destinationHex.vertices != []:
+            for vertex in destinationHex.vertices:
+                if vertex.settlement != None:
+                    if vertex.settlement.owner != player:
+                        playersAvailableToRob.append(vertex.settlement.owner)
+        playerToRob = None
+        if playersAvailableToRob != []:
+            playerToRob = get_player_from_player(player, playersAvailableToRob)
+        return (destinationHex, playerToRob)
 
 def get_knight_choice_from_player(player):
     if player.isAI:
         pass
     else:
-        choice = input("%s enter k to play a Knight before the roll or enter r to roll now: " % player.name)
+        choice = input("\n{} enter k to play a Knight before the roll or enter r to roll now: ".format(player.name))
         if choice != "r" and choice != "k":
+            print("That was not a valid option.")
             choice = get_knight_choice_from_player(player)
-        if choice == "r":
-            return False
-        else:
-            return True
+        return choice
+
+def get_player_from_player(player, playerList):
+    if player.isAI:
+        pass
+    else:
+        playerNames = [p.name for p in playerList]
+        print("The players are: " + ", ".join(playerNames))
+        playerIndex = input("{} please give a 0-based index to choose a player: ".format(player.name))
+        try:
+            chosenPlayer = playerList[int(playerIndex)]
+        except ValueError:
+            print("That entry was not an integer.")
+            chosenPlayer = get_player_from_player(player, playerList)
+        except IndexError:
+            print("That index is out of the range of valid players")
+            chosenPlayer = get_player_from_player(player, playerList)
+        return chosenPlayer
+
+def get_hex_from_player(player, hexList):
+    if player.isAI:
+        pass
+    else:
+        hexIndex = input("{} please give a hex index: ".format(player.name))
+        try:
+            hex = hexList[int(hexIndex)]
+        except ValueError:
+            print("That entry was not an integer.")
+            hex = get_hex_from_player(player, hexList)
+        except IndexError:
+            print("That index is out of the range of valid hexes")
+            hex = get_hex_from_player(player, hexList)
+        return hex
 
 def get_vertex_from_player(player, vertexList):
     if player.isAI:
        pass
     else:
-        vertexIndex = input("%s please give a vertex index: " % player.name)
+        vertexIndex = input("{} please give a vertex index: ".format(player.name))
         try:
             vertex = vertexList[int(vertexIndex)]
-        except IndexError:
-            print("That vertex is out of the range of valid vertices")
-            vertex = get_vertex_from_player(player, vertexList)
         except ValueError:
             print("That entry was not an integer.")
+            vertex = get_vertex_from_player(player, vertexList)
+        except IndexError:
+            print("That index is out of the range of valid vertices")
             vertex = get_vertex_from_player(player, vertexList)
         return vertex
 

@@ -93,13 +93,16 @@ class Port(object):
 # Has the current location of the Robber
 # Functions for moving the Robber and stealing a resource card
 class Robber(object):
-    def __init__(self, desertHex):
+    def __init__(self, desertHex, radius):
         self.currentHex = desertHex
+        self.radius = radius
+        self.color = (15,15,15)
     
-    def move(self, newHex):
+    def move(self, newHex, screen):
         self.currentHex.hasRobber = False
         self.currentHex = newHex
         newHex.hasRobber = True
+        pygame.draw.circle(screen, self.color, newHex.coordinates, int(self.radius))
     
     def steal_from(self, playerToRob):
         targetCards = playerToRob.cardsInHand
@@ -107,10 +110,20 @@ class Robber(object):
         for key in targetCards.keys():
             targetHand += [key] * targetCards[key]
         if targetHand == []:
-            return "Empty"
+            return "Nothing"
         else:
             random.shuffle(targetHand)
             return targetHand[0]
+
+    def play(self, screen, newHex, playerRobbing, playerToRob):
+        self.move(newHex, screen)
+        if playerToRob == None:
+            return "{} moved the Robber and drew nothing from Nobody.".format(playerRobbing.name)
+        else:
+            newCard = self.steal_from(playerToRob)
+            if newCard != "Nothing":
+                playerRobbing.cardsInHand.append(newCard)
+            return "{} moved the Robber and drew {} from {}.".format(playerRobbing.name, newCard, playerToRob.name)
 
 
 # A player in the game
@@ -139,11 +152,11 @@ class Player(object):
         townCost = [grain, wool, clay, lumber]
         for resource in townCost:
             if self.cardsInHand[resource] == 0:
-                return (2, "%s does not have enough resources to build a town." % self.name)
+                return (2, "{} does not have enough resources to build a town.".format(self.name))
         if not vertexToSettle.canBeSettled:
             return (3, "That vertex cannot be built upon.")
         if self.unbuiltSettlements == []:
-            return (4, "%s does not have any towns to build.")
+            return (4, "{} does not have any towns to build.".format(self.name))
         for settlement in self.unbuiltSettlements:
             if settlement.scale == 1:
                 self.unbuiltSettlements.remove(settlement)
@@ -177,7 +190,7 @@ class Player(object):
     
     def build_road(self, vertex1, vertex2, longestRoad, screen):
         if self.cardsInHand[lumber] == 0 or self.cardsInHand[clay] == 0 or self.unbuiltRoads == []:
-            return (2, "%s does not have enough resources to build a road." % self.name)
+            return (2, "{} does not have enough resources to build a road.".format(self.name))
         if vertex1 not in vertex2.adjacentVertices:
             return (3, "Those vertices are not adjacent.")
         if vertex1.roads != []:
@@ -185,7 +198,7 @@ class Player(object):
                 if road.vertex1 == vertex2 or road.vertex2 == vertex2:
                     return (4, "A road already exists along that path.")
         if self.unbuiltRoads == []:
-            return (5, "%s does not have any roads to build" % self.name)
+            return (5, "{} does not have any roads to build".format(self.name))
         newRoad = self.unbuiltRoads[0]
         self.unbuiltRoads.remove(newRoad)
         self.builtRoads.append(newRoad)
@@ -213,17 +226,14 @@ class Player(object):
         else:
             return 1
 
-    def play_knight(self, robber, newHex, playerToRob, largestArmy):
+    def play_knight(self, robber, newHex, playerToRob, largestArmy, screen):
         if "Knight" in self.developmentCards:
             self.armySize += 1
             self.developmentCards.remove("Knight")
-            robber.move(newHex)
-            newCard = robber.steal_from(playerToRob)
-            if newCard != "Empty":
-                self.cardsInHand.append(newCard)
             largestArmy.determine_owner()
+            return (0, "Success! " + robber.play(screen, newHex, self, playerToRob))
         else:
-            return 1
+            return (1, "{} does not have any Knights to play.".format(self.name))
                 
     def play_monopoly(self, playerList, resourceWanted):
         if "Monopoly" in self.developmentCards:
@@ -288,7 +298,7 @@ class Player(object):
 class Largest_Army(object):
     def __init__(self, playerList):
         self.owner = None
-        self.size = 0
+        self.size = 2
         self.players = playerList
     
     def determine_owner(self):
@@ -298,7 +308,7 @@ class Largest_Army(object):
             if player.armySize > newSize:
                 newSize = player.armySize
                 newOwner = player
-        if newOwner != self.Owner:
+        if newOwner != self.owner:
             self.owner.hasLargestArmy = False
             self.owner = newOwner
             self.owner.hasLargestArmy = True
