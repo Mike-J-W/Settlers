@@ -19,7 +19,7 @@ def main():
     rockGray = (128, 128, 128)
     sandyDesert = (211, 208, 143)
     black = (0,0,0)
-    red = 255, (0, 242)
+    red = (255, 0, 242)
     playerRed = (213, 5, 46)
     playerBlue = (102, 207, 245)
     playerGreen = (90, 206, 48)
@@ -180,7 +180,7 @@ def main():
         print("Wrong number of arguments (name, color, isAI four times)")
         sys.exit()
     # Check that the colors given are in the player-color dictionary
-   for inputColor in sys.argv[2::3]:
+    for inputColor in sys.argv[2::3]:
         if inputColor not in playerColors:
             print("\"{}\" is not a valid color.  The options are: {}".format(inputColor, ", ".join(playerColors.keys())))
             sys.exit()
