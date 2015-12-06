@@ -97,12 +97,15 @@ class Robber(object):
         self.currentHex = desertHex
         self.radius = radius
         self.color = (15,15,15)
+        self.coordinates = (self.currentHex.coordinates[0] - int(round(self.radius / 2)), self.currentHex.coordinates[1] - int(round(self.radius / 2)))
     
     def move(self, newHex, screen):
+        pygame.draw.circle(screen, self.currentHex.color, self.coordinates, self.radius)
         self.currentHex.hasRobber = False
         self.currentHex = newHex
         newHex.hasRobber = True
-        pygame.draw.circle(screen, self.color, newHex.coordinates, int(self.radius))
+        self.coordinates = (self.currentHex.coordinates[0] - int(round(self.radius / 2)), self.currentHex.coordinates[1] - int(round(self.radius / 2)))
+        pygame.draw.circle(screen, self.color, self.coordinates, self.radius)
     
     def steal_from(self, playerToRob):
         targetCards = playerToRob.cardsInHand
