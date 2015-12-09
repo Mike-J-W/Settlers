@@ -49,20 +49,30 @@ class Settlement(object):
         self.owner = player
         self.vertex = None
         self.edgeLength = edgeLength
+        self.circumradius = int(round(math.sqrt(50 + 10 * math.sqrt(5)) * edgeLength / 10))
     
     def find_yield(self, roll):
         yieldedResources = []
-        for hexElement in self.vertex.hexes:
-            if hexElement.odds == roll and hexElement.hasRobber == False and hexElement.resource != "Desert":
-                yieldedResources += self.scale * [hexElement.resource]
+        for hex in self.vertex.hexes:
+            if hex.odds == roll and hex.hasRobber == False and hex.resource != "Desert":
+                yieldedResources += self.scale * [hex.resource]
         return yieldedResources
 
     def draw_settlement(self, screen):
         if self.scale == 1:
-#            pygame.draw.rect(screen, (0,0,0), pygame.Rect(self.vertex.coordinates[0] - self.edgeLength / 2 - 1, self.vertex.coordinates[1] - self.edgeLength / 2 - 1, self.edgeLength + 2, self.edgeLength + 2))
+#        if random.randint(1,2) == 1:
             pygame.draw.rect(screen, self.owner.color, pygame.Rect(self.vertex.coordinates[0] - self.edgeLength / 2, self.vertex.coordinates[1] - self.edgeLength / 2, self.edgeLength, self.edgeLength))
         else:
-            pass
+            x1 = int(round(math.sqrt(10 + 2 * math.sqrt(5)) * self.circumradius / 4))
+            y1 = int(round((math.sqrt(5) - 1) * self.circumradius / 4))
+            x2 = int(round(math.sqrt(10 - 2 * math.sqrt(5)) * self.circumradius / 4))
+            y2 = int(round((math.sqrt(5) + 1) * self.circumradius / 4))
+            p1 = (self.vertex.coordinates[0], self.vertex.coordinates[1] - self.circumradius)
+            p2 = (self.vertex.coordinates[0] + x1, self.vertex.coordinates[1] - y1)
+            p3 = (self.vertex.coordinates[0] + x2, self.vertex.coordinates[1] + y2)
+            p4 = (self.vertex.coordinates[0] - x2, self.vertex.coordinates[1] + y2)
+            p5 = (self.vertex.coordinates[0] - x1, self.vertex.coordinates[1] - y1)
+            pygame.draw.polygon(screen, self.owner.color, [p1,p2,p3,p4,p5])
 
 
 # A road connecting settlements
@@ -75,7 +85,6 @@ class Road(object):
         self.width = width
 
     def draw_road(self, screen):
-#        pygame.draw.line(screen, (0,0,0), self.vertex1.coordinates, self.vertex2.coordinates, self.width + 1)
         pygame.draw.line(screen, self.owner.color, self.vertex1.coordinates, self.vertex2.coordinates, self.width)
 
 
@@ -116,7 +125,9 @@ class Robber(object):
             return "Nothing"
         else:
             random.shuffle(targetHand)
-            return targetHand[0]
+            cardStolen = targetHand[0]
+            playerToRob.cardsInHand[cardStolen] -= 1
+            return cardStolen
 
     def play(self, screen, newHex, playerRobbing, playerToRob):
         self.move(newHex, screen)
@@ -125,7 +136,7 @@ class Robber(object):
         else:
             newCard = self.steal_from(playerToRob)
             if newCard != "Nothing":
-                playerRobbing.cardsInHand.append(newCard)
+                playerRobbing.cardsInHand[newCard] += 1
             return "{} moved the Robber and drew {} from {}.".format(playerRobbing.name, newCard, playerToRob.name)
 
 
@@ -276,12 +287,23 @@ class Player(object):
     def make_trade(self, cardsGiving, cardsTaking, tradeAgent):
         pass
     
-    def discard_cards(self, cardsToDiscard):
-        pass
+    def discard_cards(self, cardsToDiscard, resourceDecks):
+        if not set(cardsToDiscard.keys()).issubset(resourceDecks.keys()):
+            return (1, "Invalid resources given in discard command.")
+        for resource in cardsToDiscard.keys():
+            if cardsToDiscard[resource] > self.cardsInHand[resource]:
+                return (2, "{} does not have {} {} cards to discard.".format(self.name, cardsToDiscard[resource], resource))
+        for resource in cardsToDiscard.keys():
+            self.cardsInHand[resource] -= cardsToDiscard[resource]
+            resourceDecks[resource] += cardsToDiscard[resource]
+            return (0, "Success!")
     
-    def draw_cards(self, cardsToDraw):
-        for card in cardsToDraw:
-            self.cardsInHand[card] += 1
+    
+    def draw_cards(self, cardsToDraw, resourceDecks):
+        if cardsToDraw != []:
+            for card in cardsToDraw:
+                self.cardsInHand[card] += 1
+                resourceDecks[card] -= 1
     
     def determine_harvest(self, roll):
         harvest = []
@@ -292,7 +314,17 @@ class Player(object):
                 self.draw_cards(harvest)
     
     def count_points(self):
-        pass
+        pointCounter = 0
+        for settlement in self.builtSettlements:
+            pointCounter += settlement.scale
+        for card in self.developmentCards:
+            if card == "Victory Point":
+                pointCounter += 1
+        if self.hasLargestArmy:
+            pointCounter += 2
+        if self.hasLongestRoad:
+            pointCounter += 2
+        return pointCounter
 
 
 # The Largest Army placard

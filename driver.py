@@ -46,9 +46,7 @@ def main():
     resourceTypes = [lumber, grain, wool, clay, ore]    # A list of the resources in the game
     resourceToColor = {lumber: forestGreen, grain: wheatYellow, wool: woolGreen, clay: clayColor, ore: rockGray, desert: sandyDesert}    # A dictionary relating resouces to colors
     developmentDeck = Card_Deck(["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] * 5)    # A list with one element per development card
-    resourceDecks = {}    # A dictionary to hold the decks of resources, keyed to their resource name
-    for resource in resourceTypes:    # Generate each resource deck and add it to the dictionary
-        resourceDecks[resource] = [resource] * 19
+    resourceDecks = {lumber: 19, grain: 19, wool: 19, clay: 19, ore: 19}    # A dictionary to hold the decks of resources, keyed to their resource name
     resourcesForHexes = [lumber] * 4 + [grain] * 4 + [wool] * 4 + [clay] * 3 + [ore] * 3    # A list representing the number of hexes per resource
     random.shuffle(resourcesForHexes) # Shuffle the list of hex resources
 
@@ -209,7 +207,7 @@ def main():
     # Give the players enough cards to build their first settlements and roads
     startingHand = [grain, wool] * 2 + [clay, lumber] * 4
     for player in playerList:
-        player.draw_cards(startingHand)
+        player.draw_cards(startingHand, resourceDecks)
     # Shuffle the players to set the turn order
     random.shuffle(playerList)
 
@@ -309,14 +307,35 @@ def main():
             diceResult = random.randint(1,6) + random.randint(1,6)
             print("\n{} rolled a {}.".format(player.name, diceResult))
 
-            # Check if the roll was a 7, and play the Robber if so
+            # Check if the roll was a 7, and have the players discards cards and play the Robber if so
             if diceResult == 7:
+                # Discard cards for players with more than 7
+                for playerToCheck in playerList:
+                    if sum(playerToCheck.cardsInHand.values()) > 7:
+                        validAction = False
+                        while not validAction:
+                            discardDict = get_cards_to_discard_from_player(playerToCheck, resourceTypes)
+                            discardResult = playerToCheck.discard_cards(discardDict, resourceDecks)
+                            if discardResult[0] != 0:
+                                print(discardResult[1] + " Please try again.")
+                            else:
+                                validAction = True
                 robberPlay = get_robber_play_from_player(player, robber, hexes) # Ask the player how they'd like to play the Robber
                 robberResult = robber.play(screen, robberPlay[0], player, robberPlay[1])    # Attempt to make that play
                 pygame.display.update() # Update the screen to show the new location of the Robber
                 print(robberResult) # Print the result of the player stealing from someone
-
+            else:
+                # Have the players draw their resource cards
+                for playerDrawing in playerList:
+                    for settlement in playerDrawing.builtSettlements:
+                        playerDrawing.draw_cards(settlement.find_yield(diceResult), resourceDecks)
+                    print("{} has {}".format(playerDrawing.name, playerDrawing.cardsInHand))
+            
             # build and/or trade and/or play Dev Card
+            turnIsOver = False
+#            while not turnIsOver:
+#               turnAction = get_turn_action_from_player(player)
+    
 
         # waits ten seconds and then starts the whole process over again
         time.sleep(1)
@@ -324,6 +343,46 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
 
+
+def get_cards_to_discard_from_player(player, resourceTypes):
+    if player.isAI:
+        pass
+    else:
+        handSize = sum(player.cardsInHand.values())
+        numberToDiscard = int(round(handSize / 2, -0))
+        correctNumberChosen = False
+        cardsToDiscard = dict(zip(resourceTypes, [0,0,0,0,0]))
+        while not correctNumberChosen:
+            print("{}, you have {} cards and must discard {}.".format(player.name, handSize, numberToDiscard))
+            print("Your cards are: {}".format(player.cardsInHand))
+            for resource in resourceTypes:
+                if player.cardsInHand[resource] != 0:
+                    validInput = False
+                    while not validInput:
+                        resourceInput = input("You have {} {} cards. How many will you dicard? ".format(player.cardsInHand[resource], resource))
+                        try:
+                            resourceCount = int(resourceInput)
+                            if 0 <= resourceCount <= player.cardsInHand[resource]:
+                                cardsToDiscard[resource] = resourceCount
+                                validInput = True
+                            else:
+                                print("Not within the valid range.")
+                        except ValueError:
+                            print("That was not an integer.")
+            if sum(cardsToDiscard.values()) > numberToDiscard or sum(cardsToDiscard.values()) < numberToDiscard:
+                print ("Incorrect number of cards chosen.")
+                cardsToDiscard = dict(zip(resourceTypes, [0,0,0,0,0]))
+            else:
+                correctNumberChosen = True
+        return cardsToDiscard
+
+
+def get_turn_action_from_player(player):
+    if player.isAI:
+        pass
+    else:
+        print("The options are: build road, build town, build city, buy development card, play Knight, play Monoply, play Year of Plenty, play Road Building, trade, end turn")
+        actionName = input("{} please give the 0-based index of the turn action to take.".format(player.name))
 
 
 # A function to get the new hex for the Robber and the player from whom the player wants to steal
@@ -343,13 +402,13 @@ def get_robber_play_from_player(player, robber, hexes):
             # Check whether each vertex has a settlement built on it
             if vertex.settlement != None:
                 # If so, check that the owner of that settlement is not the player
-                if vertex.settlement.owner != player:
+                if vertex.settlement.owner != player and vertex.settlement.owner not in playersAvailableToRob:
                     # If that's the case, the owner of that vertex is a player from whom the player can steal
                     playersAvailableToRob.append(vertex.settlement.owner)
         playerToRob = None  # The default value for the player from whom the player will steal
-        print("Choose the player from whom you wish to steal.")
         # If the player has multiple players from whom they can steal, ask them to choose their target
         if len(playersAvailableToRob) > 1:
+            print("Choose the player from whom you wish to steal.")
             playerToRob = get_player_from_player(player, playersAvailableToRob)
         # If there is only one player from the player can steal, use that player as their target
         elif len(playersAvailableToRob) == 1:
