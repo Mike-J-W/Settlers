@@ -1,6 +1,7 @@
 import math
 import random
 import pygame
+import time
 
 lumber = "Wood"
 grain = "Wheat"
@@ -60,7 +61,6 @@ class Settlement(object):
 
     def draw_settlement(self, screen):
         if self.scale == 1:
-#        if random.randint(1,2) == 1:
             pygame.draw.rect(screen, self.owner.color, pygame.Rect(self.vertex.coordinates[0] - self.edgeLength / 2, self.vertex.coordinates[1] - self.edgeLength / 2, self.edgeLength, self.edgeLength))
         else:
             x1 = int(round(math.sqrt(10 + 2 * math.sqrt(5)) * self.circumradius / 4))
@@ -94,8 +94,38 @@ class Port(object):
     def __init__(self, resources, rate):
         self.resources = resources
         self.rate = rate
-        self.cordinates = (0,0)
         self.vertices = []
+
+    def draw_port(self, screen, color):
+        neighborVertices = []
+        for vertex in self.vertices:
+            adjVerOptions = vertex.adjacentVertices
+            for ver in self.vertices:
+                if ver in adjVerOptions:
+                    adjVerOptions.remove(ver)
+            if len(adjVerOptions) == 1:
+                neighborVertices.append(adjVerOptions[0])
+            else:
+                for adjVer in adjVerOptions:
+                    if len(adjVer.hexes) == 3:
+                        neighborVertices.append(adjVer)
+        rises = [self.vertices[i].coordinates[1] - neighborVertices[i].coordinates[1] for i in range(2)]
+        runs = [self.vertices[i].coordinates[0] - neighborVertices[i].coordinates[0] for i in range(2)]
+        indexA = 0
+        indexB = 1
+        outerCornerX = 0
+        outerCornerY = 0
+        if 0 in runs:
+            indexA = runs.index(0)
+            indexB = (indexA - 1) * -1
+            outerCornerX = self.vertices[indexA].coordinates[0]
+            outerCornerY = self.vertices[indexB].coordinates[1] - int(round(rises[indexB] / (runs[indexB] / (self.vertices[indexB].coordinates[0] - outerCornerX))))
+        else:
+            outerCornerY = int(round((self.vertices[0].coordinates[1] + self.vertices[1].coordinates[1])/2))
+            outerCornerX = self.vertices[0].coordinates[0] + int(round((outerCornerY - self.vertices[0].coordinates[1]) * runs[0] / rises[0]))
+        cornerA = (self.vertices[indexA].coordinates[0] + int(round(runs[indexA] * 0.25)), self.vertices[indexA].coordinates[1] + int(round(rises[indexA] * 0.25)))
+        cornerB = (self.vertices[indexB].coordinates[0] + int(round(runs[indexB] * 0.25)), self.vertices[indexB].coordinates[1] + int(round(rises[indexB] * 0.25)))
+        pygame.draw.polygon(screen, color, [(outerCornerX,outerCornerY), cornerA, cornerB])
 
 
 # The Robber piece

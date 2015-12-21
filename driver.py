@@ -139,7 +139,7 @@ def main():
 
     # A list of the ports on the map
     ports = [Port(resource, 2) for resource in resourceTypes]
-    ports += [Port("All", 3)] * 4
+    ports += [Port("All", 3) for i in range(4)]
     # Assign the ports to the appropriate vertices
     vertices[0].port = ports[5]
     vertices[1].port = ports[5]
@@ -168,6 +168,7 @@ def main():
     vertices[50].port = ports[0]
     vertices[51].port = ports[0]
     ports[0].vertices = [vertices[50], vertices[51]]
+    
 
     # Create the Robber
     robber = Robber(hexes[desertIndex], robberRadius)
@@ -243,6 +244,12 @@ def main():
                 # If the hex is the desert, place the Robber on it
                 else:
                     robber.move(hex, screen)
+            # Draw the ports, colored according to their resource
+            for port in ports:
+                portColor = (0,0,0)
+                if port.resources != "All":
+                    portColor = resourceToColor[port.resources]
+                port.draw_port(screen, portColor)
             pygame.display.flip()   # Update the whole screen in order to show the newly drawn board
             boardDrawn = True       # Record that the board has been drawn
 
