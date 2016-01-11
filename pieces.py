@@ -8,7 +8,7 @@ grain = "Wheat"
 wool = "Wool"
 clay = "Clay"
 ore = "Ore"
-
+resourceTypes = [lumber, grain, wool, clay, ore]
 
 # A hex piece that defines the board
 # Has resource type, number on the hex, whether the hex has the robber on it, and graphical position
@@ -53,10 +53,10 @@ class Settlement(object):
         self.circumradius = int(round(math.sqrt(50 + 10 * math.sqrt(5)) * edgeLength / 10))
     
     def find_yield(self, roll):
-        yieldedResources = []
+        yieldedResources = dict(zip(resourceTypes, [0,0,0,0,0]))
         for hex in self.vertex.hexes:
             if hex.odds == roll and hex.hasRobber == False and hex.resource != "Desert":
-                yieldedResources += self.scale * [hex.resource]
+                yieldedResources[hex.resource] += self.scale
         return yieldedResources
 
     def draw_settlement(self, screen):
@@ -89,7 +89,7 @@ class Road(object):
 
 
 # A port along the coast
-# Has resource(s) that can be traded there, and the rate of trade
+# Has a list of resources that can be traded there, and the rate of trade
 class Port(object):
     def __init__(self, resources, rate):
         self.resources = resources
@@ -99,7 +99,7 @@ class Port(object):
     def draw_port(self, screen, color):
         neighborVertices = []
         for vertex in self.vertices:
-            adjVerOptions = vertex.adjacentVertices
+            adjVerOptions = list(vertex.adjacentVertices)
             for ver in self.vertices:
                 if ver in adjVerOptions:
                     adjVerOptions.remove(ver)
@@ -191,6 +191,7 @@ class Player(object):
         self.hasLongestRoad = False
         self.hasLargestArmy = False
         self.cardsInHand = {wool: 0, grain: 0, lumber: 0, clay: 0, ore: 0}
+        self.tradeRatios = {wool: 4, grain: 4, lumber: 4, clay: 4, ore: 4}
     
     def build_town(self, vertexToSettle, screen):
         townCost = [grain, wool, clay, lumber]
@@ -212,6 +213,10 @@ class Player(object):
                 for resource in townCost:
                     self.cardsInHand[resource] -= 1
                 settlement.draw_settlement(screen)
+                if settlement.vertex.port != None:
+                    for rsc in settlement.vertex.port.resources:
+                        if self.tradeRatios[rsc] > settlement.vertex.port.rate:
+                            self.tradeRatios[rsc] = settlement.vertex.port.rate
                 return (0, "Success!")
         return (1, "Failed to build the town for an unknown reason.")
     
@@ -314,27 +319,39 @@ class Player(object):
     def offer_trade(self, cardsOffering, cardsRequesting, playersNotified):
         pass
     
-    def make_trade(self, cardsGiving, cardsTaking, tradeAgent):
+    def make_player_trade(self, cardsGiving, cardsTaking, tradeAgent):
         pass
+
+    def make_maritime_trade(self, resourceGiving, countGiving, resourceTaking, countTaking, resourceDecks):
+        if self.tradeRatios[resourceGiving] * countTaking != countGiving:
+            return(1, "{}'s trade ratio for {} does not allow that trade.".format(self.name, resourceGiving))
+        if countGiving > self.cardsInHand[resourceGiving]:
+            return(2, "{} does not have {} {} cards to discard.".format(self.name, countGiving, resourceGiving))
+        if countTaking > resourceDecks[resourceTaking]:
+            return(3, "There are not {} {} cards available.".format(countTaking, resourceTaking))
+        self.cardsInHand[resourceGiving] -= countGiving
+        resourceDecks[resourceGiving] += countGiving
+        self.cardsInHand[resourceTaking] += countTaking
+        resourceDecks[resourceTaking] -= countTaking
     
     def discard_cards(self, cardsToDiscard, resourceDecks):
-        if not set(cardsToDiscard.keys()).issubset(resourceDecks.keys()):
-            return (1, "Invalid resources given in discard command.")
         for resource in cardsToDiscard.keys():
             if cardsToDiscard[resource] > self.cardsInHand[resource]:
-                return (2, "{} does not have {} {} cards to discard.".format(self.name, cardsToDiscard[resource], resource))
+                return (1, "{} does not have {} {} cards to discard.".format(self.name, cardsToDiscard[resource], resource))
         for resource in cardsToDiscard.keys():
             self.cardsInHand[resource] -= cardsToDiscard[resource]
             resourceDecks[resource] += cardsToDiscard[resource]
             return (0, "Success!")
     
-    
     def draw_cards(self, cardsToDraw, resourceDecks):
-        if cardsToDraw != []:
-            for card in cardsToDraw:
-                self.cardsInHand[card] += 1
-                resourceDecks[card] -= 1
-    
+        for resource in cardsToDraw.keys():
+            if cardsToDraw[resource] > resourceDecks[resource]:
+                return (1, "There are not {} {} cards available.".format(cardsToDraw[resource], resource))
+        for resource in cardsToDraw.keys():
+            self.cardsInHand[resource] += cardsToDraw[resource]
+            resourceDecks[resource] -= cardsToDraw[resource]
+        return(0, "Success!")
+
     def determine_harvest(self, roll):
         harvest = []
         if self.builtSettlements != []:

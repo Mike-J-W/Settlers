@@ -138,8 +138,8 @@ def main():
             hex.vertices[3].adjacentVertices.append(hex.vertices[2])
 
     # A list of the ports on the map
-    ports = [Port(resource, 2) for resource in resourceTypes]
-    ports += [Port("All", 3) for i in range(4)]
+    ports = [Port([resource], 2) for resource in resourceTypes]
+    ports += [Port(list(resourceTypes), 3) for i in range(4)]
     # Assign the ports to the appropriate vertices
     vertices[0].port = ports[5]
     vertices[1].port = ports[5]
@@ -206,7 +206,7 @@ def main():
     # Construct a list of the players
     playerList = [player1, player2, player3, player4]
     # Give the players enough cards to build their first settlements and roads
-    startingHand = [grain, wool] * 2 + [clay, lumber] * 4
+    startingHand = {grain: 2, wool: 2, clay: 4, lumber: 4}
     for player in playerList:
         player.draw_cards(startingHand, resourceDecks)
     # Shuffle the players to set the turn order
@@ -247,8 +247,8 @@ def main():
             # Draw the ports, colored according to their resource
             for port in ports:
                 portColor = (0,0,0)
-                if port.resources != "All":
-                    portColor = resourceToColor[port.resources]
+                if port.resources != resourceTypes:
+                    portColor = resourceToColor[port.resources[0]]
                 port.draw_port(screen, portColor)
             pygame.display.flip()   # Update the whole screen in order to show the newly drawn board
             boardDrawn = True       # Record that the board has been drawn
