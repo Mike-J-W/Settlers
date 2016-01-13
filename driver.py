@@ -222,13 +222,22 @@ def main():
     screen = pygame.display.set_mode(screenSize)    # opens the window with the size specifications given
     screen.fill(oceanBlue)                          # sets the background color
     myfont = pygame.font.SysFont("comicsansms", 25) # sets the font and size
+    keyFont = pygame.font.SysFont("Arial", 15)
 
     # The pygame loop
     boardDrawn = False                  # A flag to track if the board has been drawn
     initialSettlementsBuilt = False     # A flag to track if the players have built their starting settlements and roads
     while 1:
-        # Draw the hexes, odds tiles, and Robber
+        # Draw the key, hexes, odds tiles, and Robber
         if not boardDrawn:
+            # Draw the player key
+            pygame.draw.rect(screen, (255,255,255), (int(round(hexEdgeLength/2)), int(round(hexEdgeLength/2)), 120, 120), 0)
+            keyTitle = keyFont.render("Player Key", 1, black)
+            screen.blit(keyTitle, (int(round(hexEdgeLength/2)) + 5, int(round(hexEdgeLength/2))))
+            for count, player in enumerate(playerList):
+                pygame.draw.rect(screen, player.color, (int(round(hexEdgeLength/2)) + 5, int(round(hexEdgeLength/2)) + 25 + (count * 25), 12, 12), 0)
+                playerLabel = keyFont.render(player.name, 1, black)
+                screen.blit(playerLabel, (int(round(hexEdgeLength/2)) + 27, int(round(hexEdgeLength/2)) + 22 + (count * 25)))
             # Loop through the hexes, so that they can be drawn
             for hex in hexes:
                 pygame.draw.polygon(screen, hex.color, hex.vertexCoordinates, 0)    # Draw the hex
