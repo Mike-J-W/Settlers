@@ -4,57 +4,16 @@ import pygame
 import math
 import time
 import sys
-
+from game_state import game_state #TODO holds class that contains all the different changeable variables e.g. map, number of settlements, cards each player has
+from constants import * #TODO holds all the game constants e.g. colors, menu_dicts, etc
 
 def main():
     # Initialize all the game pieces
-    
-    # Set the colors
-    oceanBlue = (0, 0, 120)
-    forestGreen = (34, 139, 34)
-    oceanBlue = (0, 0, 120)
-    wheatYellow = (244, 233, 19)
-    woolGreen = (144, 238, 144)
-    clayColor = (173, 77, 8)
-    rockGray = (128, 128, 128)
-    sandyDesert = (211, 208, 143)
-    black = (0,0,0)
-    red = (255, 0, 242)
-    playerRed = (213, 5, 46)
-    playerBlue = (102, 207, 245)
-    playerGreen = (90, 206, 48)
-    playerPurple = (149, 58, 172)
-    playerWhite = (255, 255, 255)
-    playerOrange = (255, 182, 71)
-    playerColors = {"red": playerRed, "blue": playerBlue, "green": playerGreen, "purple": playerPurple, "white": playerWhite, "orange": playerOrange}
-    
-    # Set the piece and image sizes
-    hexEdgeLength = 60                                                      # The length of a side of a hex
-    hexRadius = int(round(hexEdgeLength * math.sqrt(3) / 2.0))              # The distance from a hex's center to the midpoint of an edge
-    settlementEdgeLength = int(round(hexEdgeLength / 4))                    # The width of a town
-    roadWidth = int(round(settlementEdgeLength / 3))                        # The width of a road
-    robberRadius = int(settlementEdgeLength)                                # The radius of the circle denoting the Robber
-    screenSize = (hexRadius * 10 + hexEdgeLength * 4, hexEdgeLength * 12)   # The size of the window that is opened
+    randomVariable = 57
 
-    # The resource and card variables
-    lumber = "Wood"
-    grain = "Wheat"
-    wool = "Wool"
-    clay = "Clay"
-    ore = "Ore"
-    desert = "Desert"
-    resourceTypes = [lumber, grain, wool, clay, ore]    # A list of the resources in the game
-    resourceToColor = {lumber: forestGreen, grain: wheatYellow, wool: woolGreen, clay: clayColor, ore: rockGray, desert: sandyDesert}    # A dictionary relating resouces to colors
-    developmentDeck = Card_Deck(["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] * 5)    # A list with one element per development card
-    resourceDecks = {lumber: 19, grain: 19, wool: 19, clay: 19, ore: 19}    # A dictionary to hold the decks of resources, keyed to their resource name
-    resourcesForHexes = [lumber] * 4 + [grain] * 4 + [wool] * 4 + [clay] * 3 + [ore] * 3    # A list representing the number of hexes per resource
     random.shuffle(resourcesForHexes) # Shuffle the list of hex resources
 
-    # Making the odds tiles placed on top of the hexes
-    odds = [6,6,8,8,2,3,3,4,4,5,5,9,9,10,10,11,11,12]   # A list of the numbered, circular tiles denoting times of harvest
-    indices = [i for i in range(19)]    # A list of the indices of the odds tiles
-    # A list of hexes adjacent to the hex represented by the index of the larger list (e.g. hex 0 is adjacent to hexes [1,3,4])
-    adjacents = [[1,3,4],[0,2,4,5],[1,5,6],[0,4,7,8],[0,1,3,5,8,9],[1,2,4,6,9,10],[2,5,10,11],[3,8,12],[3,4,7,9,12,13],[4,5,8,10,13,14],[5,6,9,11,14,15],[6,10,15],[7,8,13,16],[8,9,12,14,16,17],[9,10,13,15,17,18],[10,11,14,18],[12,13,17],[13,14,16,18],[14,15,17]]
+    # Making the odds tiles placed on top of the he7]]
     oddsOrdered = [0] * 19    # A list to hold the odds tiles placed in random order
     # Loop through the odds to place each in oddsOrdered
     for o in odds:
@@ -80,9 +39,7 @@ def main():
     # Get the index of the 0-odd tile and insert "Desert" at that index in the resources list
     desertIndex = oddsOrdered.index(0)
     resourcesForHexes.insert(desertIndex, "Desert")
-    
-    # The unadjusted coordinates of the centers of the hexes
-    baseHexCenters = [(3,1),(5,1),(7,1),(2,2.5),(4,2.5),(6,2.5),(8,2.5),(1,4),(3,4),(5,4),(7,4),(9,4),(2,5.5),(4,5.5),(6,5.5),(8,5.5),(3,7),(5,7),(7,7)]
+
     # The centers of the hexes adjusted for the length of their sides
     hexCenters = [(int(2 * hexEdgeLength + baseHexCenters[i][0] * hexRadius), int((baseHexCenters[i][1] + 2) * hexEdgeLength)) for i in range(len(baseHexCenters))]
     # A list of the hexes, assigned a resource and a numbered tile using the lists above
@@ -275,7 +232,7 @@ def main():
                 validAction = False     # Reset the valid action tracker
                 # Repeat until the player successfully builds a road
                 while not validAction:
-                    print("For the heading of the road from that settlement, ")
+                    print("For the heading of the road from that settlement:")
                     roadDestinationVertex = get_vertex_from_player(player, vertices)    # Ask the player for the vertex to which their road goes
                     buildResult = player.build_road(settlementVertex, roadDestinationVertex, longestRoad, screen)   # Attempt to build and draw the road
                     # If unsuccessful, print the error message and loop again
@@ -289,10 +246,27 @@ def main():
         
         # Loop through the players to let each take their game turns
         for player in playerList:
-            player.developmentCards.append("Knight")
+            #####player.developmentCards.append("Knight")
             # Let the player play a knight before roll if they choose
             validAction = False     # A flag to track whether the player has completed a valid action
             # Repeat until the player successfully plays a Knight or decides to roll
+
+            print("\n{}, it is now your turn.".format(player.name))
+            # Initiate the pre-harvest menu
+            actionChoice = player_menu(menu_dict["preHarvestMenu"][0],menu_dict["preHarvestMenu"][1])
+
+            # for menuType in menuOrder:
+            #    actionChoice = player_menu(menu_dict[menuType][0],menu_dict[menuType][1])
+            #    perform_action(menuType, actionChoice) TODO
+
+            # If the player chose to play a knight prior to rolling the dice
+
+            # Roll the dice and print the result
+            diceResult = random.randint(1,6) + random.randint(1,6)
+            print("\n{} rolled a {}.".format(player.name, diceResult))
+
+            actionChoice = player_menu(menu_dict["postHarvestMenu"][0],menu_dict["postHarvestMenu"][1])
+
             while not validAction:
                 playKnightFirst = get_knight_choice_from_player(player) # Ask the player if they'd like to play a Knight before the roll
                 # If the player wants to play a Knight, begin that proceess
@@ -310,9 +284,6 @@ def main():
                 else:
                     validAction = True
         
-            # Roll the dice and print the result
-            diceResult = random.randint(1,6) + random.randint(1,6)
-            print("\n{} rolled a {}.".format(player.name, diceResult))
 
             # Check if the roll was a 7, and have the players discards cards and play the Robber if so
             if diceResult == 7:
@@ -506,6 +477,38 @@ def get_vertex_from_player(player, vertexList):
             vertex = get_vertex_from_player(player, vertexList)
         # Return the vertex object corresponding to the index chosen by the player
         return vertex
+
+
+
+def menu_choice_validity(validInputs, menuChoice):
+    # check which menu to check
+    # Make sure that the menuChoice is an int
+    try:
+        menuChoice = int(menuChoice)
+        print("menuChoice = {}".format(menuChoice))
+
+    except:
+        print("{} was not a valid option, it wasn't an int, please try again.".format(menuChoice))
+        return False
+
+    if menuChoice in validInputs:
+        print("Success!")
+        return True
+
+    print("{} was not a valid option, please try again.".format(menuChoice))
+    return False
+
+def player_menu(instructionString, validInputs):
+    # Print out the menu
+    print(instructionString)
+
+    validOptionFound = False
+    while not validOptionFound:
+        action = input("Please choose an option: ")
+        print(action)
+        validOptionFound = menu_choice_validity(validInputs, action)
+
+    return action
 
 
 
