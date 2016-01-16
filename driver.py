@@ -4,12 +4,10 @@ import pygame
 import math
 import time
 import sys
-from game_state import game_state #TODO holds class that contains all the different changeable variables e.g. map, number of settlements, cards each player has
 from constants import * #TODO holds all the game constants e.g. colors, menu_dicts, etc
 
 def main():
     # Initialize all the game pieces
-    randomVariable = 57
 
     random.shuffle(resourcesForHexes) # Shuffle the list of hex resources
 
@@ -130,7 +128,7 @@ def main():
     # Create the Robber
     robber = Robber(hexes[desertIndex], robberRadius)
 
-    # Instaniate the players
+    # Instantiate the players
     # The game expects 4 players and a name, a color, and an AI status (True or False) for each
     if len(sys.argv) != 13:
         print("Wrong number of arguments (name, color, isAI four times)")
