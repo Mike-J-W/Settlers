@@ -8,6 +8,7 @@ grain = "Wheat"
 wool = "Wool"
 clay = "Clay"
 ore = "Ore"
+desert = "Desert"
 resourceTypes = [lumber, grain, wool, clay, ore]
 
 # A hex piece that defines the board
@@ -324,15 +325,16 @@ class Player(object):
 
     def make_maritime_trade(self, resourceGiving, countGiving, resourceTaking, countTaking, resourceDecks):
         if self.tradeRatios[resourceGiving] * countTaking != countGiving:
-            return(1, "{}'s trade ratio for {} does not allow that trade.".format(self.name, resourceGiving))
+            return (1, "{}'s trade ratio for {} does not allow that trade.".format(self.name, resourceGiving))
         if countGiving > self.cardsInHand[resourceGiving]:
-            return(2, "{} does not have {} {} cards to discard.".format(self.name, countGiving, resourceGiving))
+            return (2, "{} does not have {} {} cards to discard.".format(self.name, countGiving, resourceGiving))
         if countTaking > resourceDecks[resourceTaking]:
-            return(3, "There are not {} {} cards available.".format(countTaking, resourceTaking))
+            return (3, "There are not {} {} cards available.".format(countTaking, resourceTaking))
         self.cardsInHand[resourceGiving] -= countGiving
         resourceDecks[resourceGiving] += countGiving
         self.cardsInHand[resourceTaking] += countTaking
         resourceDecks[resourceTaking] -= countTaking
+        return (0, "Success!")
     
     def discard_cards(self, cardsToDiscard, resourceDecks):
         for resource in cardsToDiscard.keys():
