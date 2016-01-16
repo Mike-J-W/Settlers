@@ -4,6 +4,7 @@ import pygame
 import math
 import time
 import sys
+import geometricfunctions as gf
 from constants import * #TODO holds all the game constants e.g. colors, menu_dicts, etc
 
 def main():
@@ -178,6 +179,8 @@ def main():
     screen.fill(oceanBlue)                          # sets the background color
     myfont = pygame.font.SysFont("comicsansms", 25) # sets the font and size
     keyFont = pygame.font.SysFont("Arial", 15)
+    pygame.event.set_allowed(None)
+    pygame.event.set_allowed([pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN])
 
     # The pygame loop
     boardDrawn = False                  # A flag to track if the board has been drawn
@@ -448,20 +451,35 @@ def get_hex_from_player(player, hexList):
     if player.isAI:
         pass
     else:
-        hexIndex = input("{} please give a hex index: ".format(player.name))    # Get the player's hex choice
-        # Attempt to convert the input string to an integer and reference the hex object corresponding to the index
-        try:
-            hex = hexList[int(hexIndex)]
-        # If the input was not an integer, print an error message and call the fuction again to repeat the query
-        except ValueError:
-            print("That entry was not an integer.")
-            hex = get_hex_from_player(player, hexList)
-        # If the input was not a valid index for the hex list, print an error message and call the function again to repeat the query
-        except IndexError:
-            print("That index is out of the range of valid hexes")
-            hex = get_hex_from_player(player, hexList)
-        # Return the hex object corresponding to the index chosen by the player
-        return hex
+        # Loop until the user clicks on a vertex
+        validClick = False
+        while not validClick:
+            # Make sure no other events are on the queue
+            pygame.event.clear()
+            # Prompt the user for a click and wait for two events
+            print("{} please click a hex.".format(player.name))
+            chosenHex = None
+            eventA = pygame.event.wait()
+            eventB = pygame.event.wait()
+            # If the next two events are the mouse being pressed down and then released, move forward
+            if eventA.type == pygame.MOUSEBUTTONDOWN and eventB.type == pygame.MOUSEBUTTONUP:
+                posA = eventA.__dict__['pos']
+                posB = eventB.__dict__['pos']
+                # If the mouse actions (pressed down, released) were no more than 10 pixels apart, move forward
+                if gf.pp_distance(posA, posB) < 10:
+                    # Loop through the hexes to see if the click ocurred inside one
+                    for hex in hexList:
+                        # If both mouse actions ocurred inside the current hex, move forward
+                        if gf.is_within_hex(hex, posA) and gf.is_within_hex(hex, posB):
+                            # Record the hex, switch the boolean to end the while loop, and break the hex loop
+                            chosenHex = hex
+                            validClick = True
+                            break
+                    if validClick == False:
+                        print("That click was not inside a hex. Please try again.")
+                else:
+                    print("The mouse moved while pressed down. Please try again.")
+        return chosenHex
 
 # A function to get a vertex chosen by the player
 # Takes the player choosing and the list of vertices
@@ -470,21 +488,34 @@ def get_vertex_from_player(player, vertexList):
     if player.isAI:
        pass
     else:
-        vertexIndex = input("{} please give a vertex index: ".format(player.name))  # Get the player's vertex index choice
-        # Attempt to convert the input string to an integer and reference the vertex object corresponding to the index
-        try:
-            vertex = vertexList[int(vertexIndex)]
-        # If the input was not an integer, print an error message and call the fuction again to repeat the query
-        except ValueError:
-            print("That entry was not an integer.")
-            vertex = get_vertex_from_player(player, vertexList)
-        #  If the input was not a valid index for the vertex list, print an error message and call the function again to repeat the query
-        except IndexError:
-            print("That index is out of the range of valid vertices")
-            vertex = get_vertex_from_player(player, vertexList)
-        # Return the vertex object corresponding to the index chosen by the player
-        return vertex
-
+        # Loop until the user clicks on a vertex
+        validClick = False
+        while not validClick:
+            # Make sure no other events are on the queue
+            pygame.event.clear()
+            # Prompt the user for a click and wait for two events
+            print("{} please click a vertex.".format(player.name))
+            eventA = pygame.event.wait()
+            eventB = pygame.event.wait()
+            # If the next two events are the mouse being pressed down and then released, move forward
+            if eventA.type == pygame.MOUSEBUTTONDOWN and eventB.type == pygame.MOUSEBUTTONUP:
+                # Get the coordinates of each vertex on the board
+                vertexCoords = [v.coordinates for v in vertexList]
+                # Get the coordinates of the vetices closes to where the mouse was pressed down and where it was released
+                verCoordA = gf.get_closest_point(vertexCoords, eventA.__dict__['pos'])
+                verCoordB = gf.get_closest_point(vertexCoords, eventB.__dict__['pos'])
+                # If the two coordinates are the same and both events happened within 10 pixels each other, move forward
+                if verCoordA[0] == verCoordB[0] and abs(verCoordA[1] - verCoordB[1]) < 10:
+                    # If the mouse action (pressed down, released) happened within 10 pixels of the closest vertex, move forward
+                    if verCoordA[1] <= 10 and verCoordB[1] <= 10:
+                        # With all condiitions satisfied, find the vertex corresponding to the coordinates found
+                        closestVertex = vertexList[vertexCoords.index(verCoordA[0])]
+                        validClick = True
+                    else:
+                        print("That click was not close enough to a vertex. Please try again.")
+                else:
+                    print("The mouse moved while pressed down. Please try again.")
+        return closestVertex
 
 
 def menu_choice_validity(validInputs, menuChoice):
