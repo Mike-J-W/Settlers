@@ -7,6 +7,7 @@ import sys
 import geometricfunctions as gf
 from constants import * #TODO holds all the game constants e.g. colors, menu_dicts, etc
 
+
 def main():
     # Initialize all the game pieces
 
@@ -224,7 +225,7 @@ def main():
         if not initialSettlementsBuilt:
             print("Each player must build their first settlements and roads.")
             # Loop through the shuffled player list forwards once and then backwards once
-            for player in playerList + playerList[::-1]:
+            for player in playerList: #+ playerList[::-1]:  #########TODO NEEED TO CHANGE BACK!!!
                 validAction = False     # A flag to track whether the player has completed a valid action
                 print("")               # Give a line break
                 # Repeat until the player successfully builds a settlement
@@ -256,43 +257,48 @@ def main():
         
         # Loop through the players to let each take their game turns
         for player in playerList:
-            #####player.developmentCards.append("Knight")
-            # Let the player play a knight before roll if they choose
-            validAction = False     # A flag to track whether the player has completed a valid action
-            # Repeat until the player successfully plays a Knight or decides to roll
+            print("line above the dictionary")
+            preHarvestAction_dict = {1: "roll_dice(player)", 2: "play_knight_first(player,robber,hexes,largestArmy,screen)"}
+            print("line below action dict")
+            player.developmentCards.append("Knight")
 
             print("\n{}, it is now your turn.".format(player.name))
-            # Initiate the pre-harvest menu
-            actionChoice = player_menu(menu_dict["preHarvestMenu"][0],menu_dict["preHarvestMenu"][1])
 
-            # for menuType in menuOrder:
-            #    actionChoice = player_menu(menu_dict[menuType][0],menu_dict[menuType][1])
-            #    perform_action(menuType, actionChoice) TODO
+            rollDice = False
+            # Allow multiple iterations of the pre-Harvest menu in case the player chooses to play a knight first
+            while not rollDice:
+                # Initiate the pre-harvest menu
+                actionChoice = int(player_menu(menu_dict["preHarvestMenu"][0],menu_dict["preHarvestMenu"][1]))
+                Result=eval(preHarvestAction_dict[actionChoice])
+
+                #perform_action(menuType, actionChoice)
+                if actionChoice == 1:
+                    diceResult = Result
+                    rollDice = True
+
 
             # If the player chose to play a knight prior to rolling the dice
 
-            # Roll the dice and print the result
-            diceResult = random.randint(1,6) + random.randint(1,6)
-            print("\n{} rolled a {}.".format(player.name, diceResult))
+
 
             actionChoice = player_menu(menu_dict["postHarvestMenu"][0],menu_dict["postHarvestMenu"][1])
 
-            while not validAction:
-                playKnightFirst = get_knight_choice_from_player(player) # Ask the player if they'd like to play a Knight before the roll
-                # If the player wants to play a Knight, begin that proceess
-                if playKnightFirst == "k":
-                    robberPlay = get_robber_play_from_player(player, robber, hexes) # Ask the player how they'd like to use the Robber
-                    knightResult = player.play_knight(robber, robberPlay[0], robberPlay[1], largestArmy, screen)    # Attempt to make that play
-                    # If unsuccessful, print the error message and repeat the loop
-                    if knightResult[0] != 0:
-                        print(knightResult[1])
-                    # If successful, print the result of the move and end the loop
-                    else:
-                        validAction = True      # Set the tracker so that the loop doesn't repeat
-                        print(knightResult[1])  # Print the result of the player stealing from someone
-                        pygame.display.update() # Update the screen to show the new location of the Robber
-                else:
-                    validAction = True
+            # while not validAction:
+            #     playKnightFirst = get_knight_choice_from_player(player) # Ask the player if they'd like to play a Knight before the roll
+            #     # If the player wants to play a Knight, begin that process
+            #     if playKnightFirst == "k":
+            #         robberPlay = get_robber_play_from_player(player, robber, hexes) # Ask the player how they'd like to use the Robber
+            #         knightResult = player.play_knight(robber, robberPlay[0], robberPlay[1], largestArmy, screen)    # Attempt to make that play
+            #         # If unsuccessful, print the error message and repeat the loop
+            #         if knightResult[0] != 0:
+            #             print(knightResult[1])
+            #         # If successful, print the result of the move and end the loop
+            #         else:
+            #             validAction = True      # Set the tracker so that the loop doesn't repeat
+            #             print(knightResult[1])  # Print the result of the player stealing from someone
+            #             pygame.display.update() # Update the screen to show the new location of the Robber
+            #     else:
+            #         validAction = True
         
 
             # Check if the roll was a 7, and have the players discards cards and play the Robber if so
@@ -363,14 +369,6 @@ def get_cards_to_discard_from_player(player, resourceTypes):
             else:
                 correctNumberChosen = True
         return cardsToDiscard
-
-
-def get_turn_action_from_player(player):
-    if player.isAI:
-        pass
-    else:
-        print("The options are: build road, build town, build city, buy development card, play Knight, play Monoply, play Year of Plenty, play Road Building, trade, end turn")
-        actionName = input("{} please give the 0-based index of the turn action to take.".format(player.name))
 
 
 # A function to get the new hex for the Robber and the player from whom the player wants to steal
@@ -517,25 +515,28 @@ def get_vertex_from_player(player, vertexList):
                     print("The mouse moved while pressed down. Please try again.")
         return closestVertex
 
-
+# A function that checks the validity of the menu choice made by the player
+# Takes the list of valid inputs and the choice made by the player
 def menu_choice_validity(validInputs, menuChoice):
     # check which menu to check
     # Make sure that the menuChoice is an int
     try:
         menuChoice = int(menuChoice)
-        print("menuChoice = {}".format(menuChoice))
+        #print("menuChoice = {}".format(menuChoice))
 
     except:
         print("{} was not a valid option, it wasn't an int, please try again.".format(menuChoice))
         return False
 
     if menuChoice in validInputs:
-        print("Success!")
+        #print("Success!")
         return True
 
     print("{} was not a valid option, please try again.".format(menuChoice))
     return False
 
+# A function that prompts the player for their menu choice
+# Takes the type of menu and the list of valid inputs for that menu.  These are established as a dictionary in constants.py
 def player_menu(instructionString, validInputs):
     # Print out the menu
     print(instructionString)
@@ -543,10 +544,38 @@ def player_menu(instructionString, validInputs):
     validOptionFound = False
     while not validOptionFound:
         action = input("Please choose an option: ")
-        print(action)
+        #print(action)
         validOptionFound = menu_choice_validity(validInputs, action)
 
     return action
+
+
+# Function that simply rolls the dice and returns the result
+def roll_dice(player):
+    # Roll the dice and print the result
+    diceResult = random.randint(1,6) + random.randint(1,6)
+
+    print("\nRolling Dice now...")
+    print("\n{} rolled a(n) {}.\n".format(player.name, diceResult))
+
+    return diceResult
+
+# Function that deals with the choice to play the knight first
+# Takes the player in question
+def play_knight_first(player,robber,hexes,largestArmy, screen):
+    validAction = False
+    while not validAction:
+
+        robberPlay = get_robber_play_from_player(player, robber, hexes) # Ask the player how they'd like to use the Robber
+        knightResult = player.play_knight(robber, robberPlay[0], robberPlay[1], largestArmy, screen)    # Attempt to make that play
+        # If unsuccessful, print the error message and repeat the loop
+        if knightResult[0] != 0:
+            print(knightResult[1])
+        # If successful, print the result of the move and end the loop
+        else:
+            validAction = True      # Set the tracker so that the loop doesn't repeat
+            print(knightResult[1])  # Print the result of the player stealing from someone
+            pygame.display.update() # Update the screen to show the new location of the Robber
 
 
 
