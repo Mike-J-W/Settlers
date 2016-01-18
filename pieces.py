@@ -145,8 +145,8 @@ class Robber(object):
         self.currentHex = newHex
         newHex.hasRobber = True
         self.coordinates = (self.currentHex.coordinates[0] - int(round(self.radius / 2)), self.currentHex.coordinates[1] - int(round(self.radius / 2)))
-        pygame.draw.circle(screen, self.color, self.coordinates, self.radius)
-    
+        self.draw_robber(screen)
+
     def steal_from(self, playerToRob):
         targetCards = playerToRob.cardsInHand
         targetHand = []
@@ -169,6 +169,9 @@ class Robber(object):
             if newCard != "Nothing":
                 playerRobbing.cardsInHand[newCard] += 1
             return "{} moved the Robber and drew {} from {}.".format(playerRobbing.name, newCard, playerToRob.name)
+
+    def draw_robber(self, screen):
+        pygame.draw.circle(screen, self.color, self.coordinates, self.radius)
 
 
 # A player in the game
@@ -239,16 +242,24 @@ class Player(object):
         return 1
     
     def build_road(self, vertex1, vertex2, longestRoad, screen):
+        if self.unbuiltRoads == []:
+            return (2, "{} does not have any roads to build".format(self.name))
         if self.cardsInHand[lumber] == 0 or self.cardsInHand[clay] == 0 or self.unbuiltRoads == []:
-            return (2, "{} does not have enough resources to build a road.".format(self.name))
+            return (3, "{} does not have enough resources to build a road.".format(self.name))
         if vertex1 not in vertex2.adjacentVertices:
-            return (3, "Those vertices are not adjacent.")
+            return (4, "Those vertices are not adjacent.")
         if vertex1.roads != []:
             for road in vertex1.roads:
                 if road.vertex1 == vertex2 or road.vertex2 == vertex2:
-                    return (4, "A road already exists along that path.")
-        if self.unbuiltRoads == []:
-            return (5, "{} does not have any roads to build".format(self.name))
+                    return (5, "A road already exists along that path.")
+        if self.builtRoads != []:
+            contiguousRoad = False
+            for road in self.builtRoads:
+                if vertex1 == road.vertex1 or vertex1 == road.vertex2 or vertex2 == road.vertex1 or vertex2 == road.vertex2:
+                    contiguousRoad = True
+                    break
+            if not contiguousRoad:
+                return (6, "The proposed road does not connect with any other part of {}'s infrastructure.".format(self.name))
         newRoad = self.unbuiltRoads[0]
         self.unbuiltRoads.remove(newRoad)
         self.builtRoads.append(newRoad)

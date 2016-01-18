@@ -4,6 +4,7 @@ import pygame
 import math
 import time
 import sys
+import os
 import geometricfunctions as gf
 from constants import * #TODO holds all the game constants e.g. colors, menu_dicts, etc
 
@@ -177,7 +178,6 @@ def main():
     ## Pygame initialization
     pygame.init()
     screen = pygame.display.set_mode(screenSize)    # opens the window with the size specifications given
-    screen.fill(oceanBlue)                          # sets the background color
     myfont = pygame.font.SysFont("comicsansms", 25) # sets the font and size
     keyFont = pygame.font.SysFont("Arial", 15)
     pygame.event.set_allowed(None)
@@ -189,6 +189,8 @@ def main():
     while 1:
         # Draw the key, hexes, odds tiles, and Robber
         if not boardDrawn:
+            # Set the background color
+            screen.fill(oceanBlue)
             # Draw the player key
             pygame.draw.rect(screen, (255,255,255), (int(round(hexEdgeLength/2)), int(round(hexEdgeLength/2)), 120, 120), 0)
             keyTitle = keyFont.render("Player Key", 1, black)
@@ -209,15 +211,22 @@ def main():
                     else:
                         label = myfont.render(resourceOdds, 1, black)
                     screen.blit(label, (hex.coordinates))   # Place the number on the screen
-                # If the hex is the desert, place the Robber on it
-                else:
-                    robber.move(hex, screen)
+            # Draw the Robber
+            robber.draw_robber(screen)
             # Draw the ports, colored according to their resource
             for port in ports:
                 portColor = (0,0,0)
                 if port.resources != resourceTypes:
                     portColor = resourceToColor[port.resources[0]]
                 port.draw_port(screen, portColor)
+            # Draw any existing player objects
+            for player in playerList:
+                if player.builtRoads != []:
+                    for road in player.builtRoads:
+                        road.draw_road(screen)
+                if player.builtSettlements != []:
+                    for settlement in player.builtSettlements:
+                        settlement.draw_settlement(screen)
             pygame.display.flip()   # Update the whole screen in order to show the newly drawn board
             boardDrawn = True       # Record that the board has been drawn
 
@@ -257,49 +266,14 @@ def main():
         
         # Loop through the players to let each take their game turns
         for player in playerList:
-            print("line above the dictionary")
-            preHarvestAction_dict = {1: "roll_dice(player)", 2: "play_knight_first(player,robber,hexes,largestArmy,screen)"}
-            print("line below action dict")
-            player.developmentCards.append("Knight")
-
             print("\n{}, it is now your turn.".format(player.name))
 
-            rollDice = False
-            # Allow multiple iterations of the pre-Harvest menu in case the player chooses to play a knight first
-            while not rollDice:
-                # Initiate the pre-harvest menu
-#                actionChoice = int(player_menu(menu_dict["preHarvestMenu"][0],menu_dict["preHarvestMenu"][1]))
-#                Result=eval(preHarvestAction_dict[actionChoice])
-
-                actionChoice = menu_style_2(preHarvestMenu)
-                result = eval(actionChoice)
-
-                #perform_action(menuType, actionChoice)
-                if result != None:
-                    diceResult = result
-                    rollDice = True
-
-            # If the player chose to play a knight prior to rolling the dice
-
-#            actionChoice = player_menu(menu_dict["postHarvestMenu"][0],menu_dict["postHarvestMenu"][1])
-
-            # while not validAction:
-            #     playKnightFirst = get_knight_choice_from_player(player) # Ask the player if they'd like to play a Knight before the roll
-            #     # If the player wants to play a Knight, begin that process
-            #     if playKnightFirst == "k":
-            #         robberPlay = get_robber_play_from_player(player, robber, hexes) # Ask the player how they'd like to use the Robber
-            #         knightResult = player.play_knight(robber, robberPlay[0], robberPlay[1], largestArmy, screen)    # Attempt to make that play
-            #         # If unsuccessful, print the error message and repeat the loop
-            #         if knightResult[0] != 0:
-            #             print(knightResult[1])
-            #         # If successful, print the result of the move and end the loop
-            #         else:
-            #             validAction = True      # Set the tracker so that the loop doesn't repeat
-            #             print(knightResult[1])  # Print the result of the player stealing from someone
-            #             pygame.display.update() # Update the screen to show the new location of the Robber
-            #     else:
-            #         validAction = True
-        
+            # Initiate the pre-harvest menu
+            actionChoice = present_menu(player, preHarvestMenu)
+            result = eval(actionChoice)
+            if result == None:
+                result = roll_dice(player)
+            diceResult = result
 
             # Check if the roll was a 7, and have the players discards cards and play the Robber if so
             if diceResult == 7:
@@ -325,18 +299,20 @@ def main():
                         playerDrawing.draw_cards(settlement.find_yield(diceResult), resourceDecks)
                     print("{} has {}".format(playerDrawing.name, playerDrawing.cardsInHand))
             
-            # build and/or trade and/or play Dev Card
-            turnIsOver = False
-#            while not turnIsOver:
-#               turnAction = get_turn_action_from_player(player)
-    
             turnOver = False
-            actionChoice2 = menu_style_2(postHarvestMenu)
-            result = eval(actionChoice2)
+            while not turnOver:
+                actionChoice2 = present_menu(player, postHarvestMenu)
+                result = eval(actionChoice2)
+                if result[1] == "Turn is over.":
+                    turnOver = True
 
+        screen.fill(black)
+        pygame.display.update()
 
         # waits ten seconds and then starts the whole process over again
-        time.sleep(1)
+        time.sleep(3)
+
+        boardDrawn = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
@@ -344,12 +320,18 @@ def main():
 
 # A function to take the player's input and build a road
 def build_road(player, vertexList, longestRoad, screen):
-    print("Pick the first vertex.")
-    vertex1 = get_vertex_from_player(player, vertexList)
-    print("Pick the second vertex.")
-    vertex2 = get_vertex_from_player(player, vertex1.adjacentVertices)
-    player.build_road(vertex1, vertex2, longestRoad, screen)
-    pass
+    successfullBuild = False
+    while not successfullBuild:
+        print("Pick the first vertex.")
+        vertex1 = get_vertex_from_player(player, vertexList)
+        print("Pick the second vertex.")
+        vertex2 = get_vertex_from_player(player, vertex1.adjacentVertices)
+        result = player.build_road(vertex1, vertex2, longestRoad, screen)
+        print(result[1])
+        if result[0] == 0:
+            successfullBuild = True
+    pygame.display.update()
+    return (0, "Road built!")
 
 # A function to take the player's input and build a settlement
 def build_settlement():
@@ -384,9 +366,10 @@ def offer_trade():
     pass
 
 # A function to complete end-of-turn checks and move to the next player
-def end_turn():
-    pass
-
+def end_turn(player):
+    #TODO: count the player's points to see if they won
+    os.system('cls' if os.name == 'nt' else 'clear')
+    return (0, "Turn is over.")
 
 def get_cards_to_discard_from_player(player, resourceTypes):
     if player.isAI:
@@ -565,63 +548,31 @@ def get_vertex_from_player(player, vertexList):
                     print("The mouse moved while pressed down. Please try again.")
         return closestVertex
 
-# A function that checks the validity of the menu choice made by the player
-# Takes the list of valid inputs and the choice made by the player
-def menu_choice_validity(validInputs, menuChoice):
-    # check which menu to check
-    # Make sure that the menuChoice is an int
-    try:
-        menuChoice = int(menuChoice)
-        #print("menuChoice = {}".format(menuChoice))
+def present_menu(player, menuDict):
+    if player.isAI == True:
+        pass
+    else:
+        print("The available options are:")
+        menuOpts = sorted(list(menuDict.keys()))
+        for i, e in enumerate(menuOpts):
+            print("\t{}\t{}".format(i, e))
 
-    except:
-        print("{} was not a valid option, it wasn't an int, please try again.".format(menuChoice))
-        return False
-
-    if menuChoice in validInputs:
-        #print("Success!")
-        return True
-
-    print("{} was not a valid option, please try again.".format(menuChoice))
-    return False
-
-# A function that prompts the player for their menu choice
-# Takes the type of menu and the list of valid inputs for that menu.  These are established as a dictionary in constants.py
-def player_menu(instructionString, validInputs):
-    # Print out the menu
-    print(instructionString)
-
-    validOptionFound = False
-    while not validOptionFound:
-        action = input("Please choose an option: ")
-        #print(action)
-        validOptionFound = menu_choice_validity(validInputs, action)
-
-    return action
-
-def menu_style_2(menuDict):
-    print("The available options are:")
-    menuOpts = sorted(list(menuDict.keys()))
-    for i, e in enumerate(menuOpts):
-        print("\t{}\t{}".format(i, e))
-
-    validOptionFound = False
-    while not validOptionFound:
-        option = input("Please choose an option: ")
-        try:
-            optIndex = int(option)
-        except:
-            print("not an integer.  try again")
-            continue
-        try:
-            optKey = menuOpts[optIndex]
-        except:
-            print("not a valid option.  try again")
-            continue
-        action = menuDict[optKey]
-        validOptionFound = True
-    return action
-
+        validOptionFound = False
+        while not validOptionFound:
+            option = input("Please choose an option: ")
+            try:
+                optIndex = int(option)
+            except:
+                print("not an integer.  try again")
+                continue
+            try:
+                optKey = menuOpts[optIndex]
+            except:
+                print("not a valid option.  try again")
+                continue
+            action = menuDict[optKey]
+            validOptionFound = True
+        return action
 
 # Function that simply rolls the dice and returns the result
 def roll_dice(player):
