@@ -268,20 +268,20 @@ def main():
             # Allow multiple iterations of the pre-Harvest menu in case the player chooses to play a knight first
             while not rollDice:
                 # Initiate the pre-harvest menu
-                actionChoice = int(player_menu(menu_dict["preHarvestMenu"][0],menu_dict["preHarvestMenu"][1]))
-                Result=eval(preHarvestAction_dict[actionChoice])
+#                actionChoice = int(player_menu(menu_dict["preHarvestMenu"][0],menu_dict["preHarvestMenu"][1]))
+#                Result=eval(preHarvestAction_dict[actionChoice])
+
+                actionChoice = menu_style_2(preHarvestMenu)
+                result = eval(actionChoice)
 
                 #perform_action(menuType, actionChoice)
-                if actionChoice == 1:
-                    diceResult = Result
+                if result != None:
+                    diceResult = result
                     rollDice = True
-
 
             # If the player chose to play a knight prior to rolling the dice
 
-
-
-            actionChoice = player_menu(menu_dict["postHarvestMenu"][0],menu_dict["postHarvestMenu"][1])
+#            actionChoice = player_menu(menu_dict["postHarvestMenu"][0],menu_dict["postHarvestMenu"][1])
 
             # while not validAction:
             #     playKnightFirst = get_knight_choice_from_player(player) # Ask the player if they'd like to play a Knight before the roll
@@ -330,12 +330,62 @@ def main():
 #            while not turnIsOver:
 #               turnAction = get_turn_action_from_player(player)
     
+            turnOver = False
+            actionChoice2 = menu_style_2(postHarvestMenu)
+            result = eval(actionChoice2)
+
 
         # waits ten seconds and then starts the whole process over again
         time.sleep(1)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
+
+
+# A function to take the player's input and build a road
+def build_road(player, vertexList, longestRoad, screen):
+    print("Pick the first vertex.")
+    vertex1 = get_vertex_from_player(player, vertexList)
+    print("Pick the second vertex.")
+    vertex2 = get_vertex_from_player(player, vertex1.adjacentVertices)
+    player.build_road(vertex1, vertex2, longestRoad, screen)
+    pass
+
+# A function to take the player's input and build a settlement
+def build_settlement():
+    pass
+
+# A function to take the player's input and upgrade a settlement
+def upgrade_settlement():
+    pass
+
+# A function to buy a devlopment card for a player
+def buy_development_card():
+    pass
+
+# A function to take the player's input and play a monopoly card
+def play_monopoly_card():
+    pass
+
+# A function to take the player's input and play a year of plenty card
+def play_yop_card():
+    pass
+
+# A function to take the player's input and play a road building card
+def play_road_building():
+    pass
+
+# A function to take the player's input and make a maritime trade
+def maritime_trade():
+    pass
+
+# A function to take th player's input and offer a trade to other players
+def offer_trade():
+    pass
+
+# A function to complete end-of-turn checks and move to the next player
+def end_turn():
+    pass
 
 
 def get_cards_to_discard_from_player(player, resourceTypes):
@@ -549,6 +599,29 @@ def player_menu(instructionString, validInputs):
 
     return action
 
+def menu_style_2(menuDict):
+    print("The available options are:")
+    menuOpts = sorted(list(menuDict.keys()))
+    for i, e in enumerate(menuOpts):
+        print("\t{}\t{}".format(i, e))
+
+    validOptionFound = False
+    while not validOptionFound:
+        option = input("Please choose an option: ")
+        try:
+            optIndex = int(option)
+        except:
+            print("not an integer.  try again")
+            continue
+        try:
+            optKey = menuOpts[optIndex]
+        except:
+            print("not a valid option.  try again")
+            continue
+        action = menuDict[optKey]
+        validOptionFound = True
+    return action
+
 
 # Function that simply rolls the dice and returns the result
 def roll_dice(player):
@@ -576,6 +649,7 @@ def play_knight_first(player,robber,hexes,largestArmy, screen):
             validAction = True      # Set the tracker so that the loop doesn't repeat
             print(knightResult[1])  # Print the result of the player stealing from someone
             pygame.display.update() # Update the screen to show the new location of the Robber
+    return None
 
 
 
