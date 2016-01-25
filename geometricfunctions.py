@@ -29,3 +29,9 @@ def is_within_hex(hexObject, point):
     if disFromCenter < hexObject.radius:
         return True
     return False
+
+def is_within_rect(rectObject, point):
+    if rectObject.left < point[0] < rectObject.right:
+        if rectObject.top < point[1] < rectObject.bottom:
+            return True
+    return False

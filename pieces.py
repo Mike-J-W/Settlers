@@ -474,3 +474,24 @@ class Card_Deck(object):
             return card
         else:
             return "Empty"
+
+
+class Player_Key(object):
+    def __init__(self, keyFont, hexEdgeLength, playerList):
+        self.background = (255,255,255)
+        self.box = pygame.Rect(int(round(hexEdgeLength/2)), int(round(hexEdgeLength/2)), 120, 120)
+        self.keyFont = keyFont
+        self.title = self.keyFont.render("Player Key", 1, (0,0,0))
+        self.titleCoordinates = (int(round(hexEdgeLength/2)) + 5, int(round(hexEdgeLength/2)))
+        defaultColorBox = pygame.Rect(int(round(hexEdgeLength/2)) + 5, int(round(hexEdgeLength/2)) + 25, 12, 12)
+        self.colorBoxes = [defaultColorBox.move(0, i * 25) for i in range(4)]
+        self.playerColors = [p.color for p in playerList]
+        self.playerLabels = [self.keyFont.render(p.name, 1, (0,0,0)) for p in playerList]
+        self.playerLabelCoordinates = [(int(round(hexEdgeLength/2)) + 27, int(round(hexEdgeLength/2)) + 22 + (i * 25)) for i in range(4)]
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.background, self.box, 0)
+        screen.blit(self.title, self.titleCoordinates)
+        for i in range(4):
+            pygame.draw.rect(screen, self.playerColors[i], self.colorBoxes[i], 0)
+            screen.blit(self.playerLabels[i], self.playerLabelCoordinates[i])

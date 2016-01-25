@@ -10,3 +10,7 @@
 *.pyc
 
 __pycache__/pieces.cpython-35.pyc
+
+__pycache__/geometricfunctions.cpython-35.pyc
+
+__pycache__/pieces.cpython-35.pyc

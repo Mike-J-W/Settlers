@@ -10,6 +10,7 @@ clayColor = (173, 77, 8)
 rockGray = (128, 128, 128)
 sandyDesert = (211, 208, 143)
 black = (0,0,0)
+white = (255,255,255)
 red = (255, 0, 242)
 playerRed = (213, 5, 46)
 playerBlue = (102, 207, 245)
@@ -23,10 +24,10 @@ playerColors = {"red": playerRed, "blue": playerBlue, "green": playerGreen, "pur
 
 
 # The menus dictionary
-preHarvestMenu = dict(zip(["Harvest your resources (AKA roll the dice)", "Play a Knight (if possible) and then harvest resources"], ["roll_dice(player)", "play_knight(player,robber,hexes,largestArmy,screen)"]))
+preHarvestMenu = dict(zip(["Harvest your resources (AKA roll the dice)", "Play a Knight (if possible) and then harvest resources"], ["roll_dice(player)", "play_knight(player,robber,hexes,largestArmy,screen,playerKey)"]))
 postHarvestMenu = dict(zip(["Build a road", "Build a settlement", "Upgrade a settlement", "Buy a development card", "Play a knight",
                             "Play a monopoly card", "Play a year of plenty card", "Play a road building card", "Make a maritime trade", "Offer a trade to players", "End turn"],
-                           ["build_road(player, vertices, longestRoad, screen)", "build_settlement(player, vertices, screen)", "upgrade_settlement()", "buy_card()", "play_knight()", "play_monopoly()",
+                           ["build_road(player, vertices, longestRoad, screen, playerKey)", "build_settlement(player, vertices, screen, playerKey)", "upgrade_settlement()", "buy_card()", "play_knight()", "play_monopoly()",
                             "play_yop_card()", "play_road_building()", "maritime_trade()", "offer_trade()", "end_turn(player)"]))
 
 

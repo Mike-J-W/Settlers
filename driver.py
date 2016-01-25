@@ -179,9 +179,11 @@ def main():
     pygame.init()
     screen = pygame.display.set_mode(screenSize)    # opens the window with the size specifications given
     myfont = pygame.font.SysFont("comicsansms", 25) # sets the font and size
-    keyFont = pygame.font.SysFont("Arial", 15)
+    keyFont = pygame.font.SysFont("Arial", 15)      # set the font and size for the player key
     pygame.event.set_allowed(None)
     pygame.event.set_allowed([pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN, pygame.QUIT])
+    # Create the Player Key
+    playerKey = Player_Key(keyFont, hexEdgeLength, playerList)
 
     # The pygame loop
     boardDrawn = False                  # A flag to track if the board has been drawn
@@ -193,13 +195,7 @@ def main():
             # Set the background color
             screen.fill(oceanBlue)
             # Draw the player key
-            pygame.draw.rect(screen, (255,255,255), (int(round(hexEdgeLength/2)), int(round(hexEdgeLength/2)), 120, 120), 0)
-            keyTitle = keyFont.render("Player Key", 1, black)
-            screen.blit(keyTitle, (int(round(hexEdgeLength/2)) + 5, int(round(hexEdgeLength/2))))
-            for count, player in enumerate(playerList):
-                pygame.draw.rect(screen, player.color, (int(round(hexEdgeLength/2)) + 5, int(round(hexEdgeLength/2)) + 25 + (count * 25), 12, 12), 0)
-                playerLabel = keyFont.render(player.name, 1, black)
-                screen.blit(playerLabel, (int(round(hexEdgeLength/2)) + 27, int(round(hexEdgeLength/2)) + 22 + (count * 25)))
+            playerKey.draw(screen)
             # Loop through the hexes, so that they can be drawn
             for hex in hexes:
                 pygame.draw.polygon(screen, hex.color, hex.vertexCoordinates, 0)    # Draw the hex
@@ -241,28 +237,30 @@ def main():
                 # Repeat until the player successfully builds a settlement
                 while not validAction:
                     print("For the settlement, ")
-                    settlementVertex = get_vertex_from_player(player, vertices) # Ask the player for the vertex on which to build their settlement
-                    buildResult = player.build_town(settlementVertex, screen)   # Attempt to build and draw the settlement
-                    # If unsuccessful, print the error message and loop again
-                    if buildResult[0] != 0:
-                        print(buildResult[1] + "  Please try again")
-                    # If successful, update the screen to show the settlement and end the loop
-                    else:
-                        validAction = True      # Set the tracker so that the loop doesn't repeat
-                        pygame.display.update() # Update the screen to show the new settlement
+                    settlementVertex = get_vertex_from_player(player, vertices, playerKey) # Ask the player for the vertex on which to build their settlement
+                    if settlementVertex != None:
+                        buildResult = player.build_town(settlementVertex, screen)   # Attempt to build and draw the settlement
+                        # If unsuccessful, print the error message and loop again
+                        if buildResult[0] != 0:
+                            print(buildResult[1] + "  Please try again")
+                        # If successful, update the screen to show the settlement and end the loop
+                        else:
+                            validAction = True      # Set the tracker so that the loop doesn't repeat
+                            pygame.display.update() # Update the screen to show the new settlement
                 validAction = False     # Reset the valid action tracker
                 # Repeat until the player successfully builds a road
                 while not validAction:
                     print("For the heading of the road from that settlement:")
-                    roadDestinationVertex = get_vertex_from_player(player, vertices)    # Ask the player for the vertex to which their road goes
-                    buildResult = player.build_road(settlementVertex, roadDestinationVertex, longestRoad, screen)   # Attempt to build and draw the road
-                    # If unsuccessful, print the error message and loop again
-                    if buildResult[0] != 0:
-                        print(buildResult[1] + "  Please try again")
-                    # If successful, update the screen and end the loop
-                    else:
-                        validAction = True
-                        pygame.display.update()
+                    roadDestinationVertex = get_vertex_from_player(player, vertices, playerKey)    # Ask the player for the vertex to which their road goes
+                    if roadDestinationVertex != None:
+                        buildResult = player.build_road(settlementVertex, roadDestinationVertex, longestRoad, screen)   # Attempt to build and draw the road
+                        # If unsuccessful, print the error message and loop again
+                        if buildResult[0] != 0:
+                            print(buildResult[1] + "  Please try again")
+                        # If successful, update the screen and end the loop
+                        else:
+                            validAction = True
+                            pygame.display.update()
             initialSettlementsBuilt = True  # Record that the players have built the initial 2 settlements and roads
 
         if not gameOver:
@@ -325,13 +323,17 @@ def main():
 
 
 # A function to take the player's input and build a road
-def build_road(player, vertexList, longestRoad, screen):
+def build_road(player, vertexList, longestRoad, screen, playerKey):
     successfulBuild = False
     while not successfulBuild:
         print("Pick the first vertex.")
-        vertex1 = get_vertex_from_player(player, vertexList)
+        vertex1 = get_vertex_from_player(player, vertexList, playerKey)
+        if vertex1 == None:
+            return (1, "No vertex picked. Returning.")
         print("Pick the second vertex.")
-        vertex2 = get_vertex_from_player(player, vertex1.adjacentVertices)
+        vertex2 = get_vertex_from_player(player, vertex1.adjacentVertices, playerKey)
+        if vertex2 == None:
+            return (1, "No vertex picked. Returning")
         result = player.build_road(vertex1, vertex2, longestRoad, screen)
         print(result[1])
         if result[0] == 0:
@@ -340,11 +342,13 @@ def build_road(player, vertexList, longestRoad, screen):
     return (0, "Road built!")
 
 # A function to take the player's input and build a settlement
-def build_settlement(player, vertexList, screen):
+def build_settlement(player, vertexList, screen, playerKey):
     successfulBuild = False
     while not successfulBuild:
         print("Pick the vertex desired for the settlement.")
-        vertexToSettle = get_vertex_from_player(player, vertexList)
+        vertexToSettle = get_vertex_from_player(player, vertexList, playerKey)
+        if vertexToSettle == None:
+            return (1, "No vertex selected. Returning.")
         result = player.build_town(vertexToSettle, screen)
         print(result[1])
         if result[0] == 0:
@@ -456,7 +460,7 @@ def get_cards_to_discard_from_player(player, resourceTypes):
 
 # A function to get the new hex for the Robber and the player from whom the player wants to steal
 # Takes the player moving the Robber, the Robber, and the list of hexes
-def get_robber_play_from_player(player, robber, hexes):
+def get_robber_play_from_player(player, robber, hexes, playerKey):
     # Check if the player is an AI or human
     if player.isAI:
         pass
@@ -464,7 +468,7 @@ def get_robber_play_from_player(player, robber, hexes):
         destinationHex = robber.currentHex  # Get the current hex of the Robber to use as a metric to determine when the player has successfully picked a new hex
         while destinationHex == robber.currentHex:
             print("Choose a new hex for the Robber.")
-            destinationHex = get_hex_from_player(player, hexes) # Ask the player to which hex they want to move the Robber
+            destinationHex = get_hex_from_player(player, hexes, playerKey) # Ask the player to which hex they want to move the Robber
         playersAvailableToRob = []  # A list to hold the players from whom the player can steal
         # Loop through the vertices that surround the Robber's new hex
         for vertex in destinationHex.vertices:
@@ -524,7 +528,7 @@ def get_player_from_player(player, playerList):
 
 # A function to get a hex chosen by the player
 # Takes the player choosing and the list of board hexes
-def get_hex_from_player(player, hexList):
+def get_hex_from_player(player, hexList, playerKey):
     # Check if the player is an AI or human
     if player.isAI:
         pass
@@ -535,7 +539,7 @@ def get_hex_from_player(player, hexList):
             # Make sure no other events are on the queue
             pygame.event.clear()
             # Prompt the user for a click and wait for two events
-            print("{} please click a hex.".format(player.name))
+            print("{} please click a hex. Or click the Player Key to select nothing.".format(player.name))
             chosenHex = None
             eventA = pygame.event.wait()
             eventB = pygame.event.wait()
@@ -545,23 +549,29 @@ def get_hex_from_player(player, hexList):
                 posB = eventB.__dict__['pos']
                 # If the mouse actions (pressed down, released) were no more than 10 pixels apart, move forward
                 if gf.pp_distance(posA, posB) < 10:
-                    # Loop through the hexes to see if the click ocurred inside one
-                    for hex in hexList:
-                        # If both mouse actions ocurred inside the current hex, move forward
-                        if gf.is_within_hex(hex, posA) and gf.is_within_hex(hex, posB):
-                            # Record the hex, switch the boolean to end the while loop, and break the hex loop
-                            chosenHex = hex
-                            validClick = True
-                            break
-                    if validClick == False:
-                        print("That click was not inside a hex. Please try again.")
+                    # If the click was inside the Player Key, return to the previous menu without a selection
+                    if gf.is_within_rect(playerKey.box, posA) and gf.is_within_rect(playerKey.box, posB):
+                        chosenHex = None
+                        validClick = True
+                        print("{} did not choose a hex.".format(player.name))
+                    else:
+                        # Loop through the hexes to see if the click ocurred inside one
+                        for hex in hexList:
+                            # If both mouse actions ocurred inside the current hex, move forward
+                            if gf.is_within_hex(hex, posA) and gf.is_within_hex(hex, posB):
+                                # Record the hex, switch the boolean to end the while loop, and break the hex loop
+                                chosenHex = hex
+                                validClick = True
+                                break
+                        if validClick == False:
+                            print("That click was not inside a hex. Please try again.")
                 else:
                     print("The mouse moved while pressed down. Please try again.")
         return chosenHex
 
 # A function to get a vertex chosen by the player
 # Takes the player choosing and the list of vertices
-def get_vertex_from_player(player, vertexList):
+def get_vertex_from_player(player, vertexList, playerKey):
     # Check if the player is an AI or human
     if player.isAI:
        pass
@@ -572,25 +582,34 @@ def get_vertex_from_player(player, vertexList):
             # Make sure no other events are on the queue
             pygame.event.clear()
             # Prompt the user for a click and wait for two events
-            print("{} please click a vertex.".format(player.name))
+            print("{} please click a vertex. Or click the Player Key to select nothing.".format(player.name))
             eventA = pygame.event.wait()
             eventB = pygame.event.wait()
             # If the next two events are the mouse being pressed down and then released, move forward
             if eventA.type == pygame.MOUSEBUTTONDOWN and eventB.type == pygame.MOUSEBUTTONUP:
+                # Get the coordinates of the clicks
+                posA = eventA.__dict__['pos']
+                posB = eventB.__dict__['pos']
                 # Get the coordinates of each vertex on the board
                 vertexCoords = [v.coordinates for v in vertexList]
                 # Get the coordinates of the vetices closes to where the mouse was pressed down and where it was released
-                verCoordA = gf.get_closest_point(vertexCoords, eventA.__dict__['pos'])
-                verCoordB = gf.get_closest_point(vertexCoords, eventB.__dict__['pos'])
+                verCoordA = gf.get_closest_point(vertexCoords, posA)
+                verCoordB = gf.get_closest_point(vertexCoords, posB)
                 # If the two coordinates are the same and both events happened within 10 pixels each other, move forward
                 if verCoordA[0] == verCoordB[0] and abs(verCoordA[1] - verCoordB[1]) < 10:
-                    # If the mouse action (pressed down, released) happened within 10 pixels of the closest vertex, move forward
-                    if verCoordA[1] <= 10 and verCoordB[1] <= 10:
-                        # With all condiitions satisfied, find the vertex corresponding to the coordinates found
-                        closestVertex = vertexList[vertexCoords.index(verCoordA[0])]
+                    # If the click was inside the Player Key, return to the previous menu without a selection
+                    if gf.is_within_rect(playerKey.box, posA) and gf.is_within_rect(playerKey.box, posB):
+                        closestVertex = None
                         validClick = True
+                        print("{} did not choose a vertex.".format(player.name))
                     else:
-                        print("That click was not close enough to a vertex. Please try again.")
+                        # If the mouse action (pressed down, released) happened within 10 pixels of the closest vertex, move forward
+                        if verCoordA[1] <= 10 and verCoordB[1] <= 10:
+                            # With all condiitions satisfied, find the vertex corresponding to the coordinates found
+                            closestVertex = vertexList[vertexCoords.index(verCoordA[0])]
+                            validClick = True
+                        else:
+                            print("That click was not close enough to a vertex. Please try again.")
                 else:
                     print("The mouse moved while pressed down. Please try again.")
         return closestVertex
@@ -633,9 +652,9 @@ def roll_dice(player):
 
 # Function that deals with the choice to play the knight first
 # Takes the player in question
-def play_knight(player,robber,hexes,largestArmy, screen):
+def play_knight(player,robber,hexes,largestArmy, screen, playerKey):
     player.developmentCards.append("Knight")
-    robberPlay = get_robber_play_from_player(player, robber, hexes) # Ask the player how they'd like to use the Robber
+    robberPlay = get_robber_play_from_player(player, robber, hexes, playerKey) # Ask the player how they'd like to use the Robber
     knightResult = player.play_knight(robber, robberPlay[0], robberPlay[1], largestArmy, screen)    # Attempt to make that play
     pygame.display.update()
     print(knightResult[1])
