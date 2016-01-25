@@ -375,11 +375,13 @@ class Player(object):
     
     def count_points(self):
         pointCounter = 0
-        for settlement in self.builtSettlements:
-            pointCounter += settlement.scale
-        for card in self.developmentCards:
-            if card == "Victory Point":
-                pointCounter += 1
+        if self.builtSettlements != []:
+            for settlement in self.builtSettlements:
+                pointCounter += settlement.scale
+        if self.developmentCards != []:
+            for card in self.developmentCards:
+                if card == "Victory Point":
+                    pointCounter += 1
         if self.hasLargestArmy:
             pointCounter += 2
         if self.hasLongestRoad:
