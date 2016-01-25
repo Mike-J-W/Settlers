@@ -23,18 +23,10 @@ playerColors = {"red": playerRed, "blue": playerBlue, "green": playerGreen, "pur
 
 
 # The menus dictionary
-menu_dict = {"preHarvestMenu":["""Possible Actions:
-\t(1) Harvest your resources (AKA roll the dice)
-\t(2) Play a Knight (if possible) prior to harvesting resources
-""",[1,2]],
-             "postHarvestMenu":["""Possible Actions:
-\t(1) TODO""",[list]]}
-preHarvestAction_dict = {1: "roll_dice(player)", 2: "play_knight_first(player,robber,hexes,largestArmy,screen)"}
-
 preHarvestMenu = dict(zip(["Harvest your resources (AKA roll the dice)", "Play a Knight (if possible) and then harvest resources"], ["roll_dice(player)", "play_knight_first(player,robber,hexes,largestArmy,screen)"]))
 postHarvestMenu = dict(zip(["Build a road", "Build a settlement", "Upgrade a settlement", "Buy a development card", "Play a knight",
                             "Play a monopoly card", "Play a year of plenty card", "Play a road building card", "Make a maritime trade", "Offer a trade to players", "End turn"],
-                           ["build_road(player, vertices, longestRoad, screen)", "build_settlement()", "upgrade_settlement()", "buy_card()", "play_knight()", "play_monopoly()",
+                           ["build_road(player, vertices, longestRoad, screen)", "build_settlement(player, vertices, screen)", "upgrade_settlement()", "buy_card()", "play_knight()", "play_monopoly()",
                             "play_yop_card()", "play_road_building()", "maritime_trade()", "offer_trade()", "end_turn(player)"]))
 
 
