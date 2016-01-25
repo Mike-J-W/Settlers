@@ -164,7 +164,7 @@ def main():
     # Construct a list of the players
     playerList = [player1, player2, player3, player4]
     # Give the players enough cards to build their first settlements and roads
-    startingHand = {grain: 2, wool: 2, clay: 4, lumber: 4}
+    startingHand = {grain: 8, wool: 2, clay: 4, lumber: 4}  ## TODO EDITED THIS SO I CAN TEST MARITIME TRADING
     for player in playerList:
         player.draw_cards(startingHand, resourceDecks)
     # Shuffle the players to set the turn order
@@ -368,8 +368,39 @@ def play_road_building():
     pass
 
 # A function to take the player's input and make a maritime trade
-def maritime_trade():
-    pass
+def maritime_trade(player, maritimeTradeMenu, resourceDecks):
+
+    print("Please select the resource you would like to maritime trade: ")
+    resourceTrading = present_menu(player, maritimeTradeMenu)
+
+    validOptionFound = False
+    while not validOptionFound:
+        quantCardsTrading = input("How many {} resource cards would you like to trade in? ".format(resourceTrading[1]))
+        try:
+            quantCardsTrading = int(quantCardsTrading)
+        except:
+            print("not an integer.  try again")
+            continue
+        action = quantCardsTrading
+        validOptionFound = True
+
+    print("Please select the resource type you would like to receive: ")
+    resourceReceiving = present_menu(player, maritimeTradeMenu)
+
+    validOptionFound = False
+    while not validOptionFound:
+        quantCardsReceiving = input("How many {} resource cards would you like to receive? ".format(resourceReceiving[1]))
+        try:
+            quantCardsReceiving = int(quantCardsReceiving)
+        except:
+            print("not an integer.  try again")
+            continue
+        validOptionFound = True
+
+    result = player.make_maritime_trade(resourceTrading[0], quantCardsTrading, resourceReceiving[0], quantCardsReceiving, resourceDecks)
+
+    return (0, "Cards successfully maritime traded!")
+
 
 # A function to take th player's input and offer a trade to other players
 def offer_trade():
