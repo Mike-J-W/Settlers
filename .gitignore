@@ -1,0 +1,12 @@
+
+*.xml
+
+.idea/.name
+
+.idea/Settlers.iml
+
+*.pyc
+
+*.pyc
+
+__pycache__/pieces.cpython-35.pyc

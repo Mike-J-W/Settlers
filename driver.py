@@ -181,11 +181,12 @@ def main():
     myfont = pygame.font.SysFont("comicsansms", 25) # sets the font and size
     keyFont = pygame.font.SysFont("Arial", 15)
     pygame.event.set_allowed(None)
-    pygame.event.set_allowed([pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN])
+    pygame.event.set_allowed([pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN, pygame.QUIT])
 
     # The pygame loop
     boardDrawn = False                  # A flag to track if the board has been drawn
     initialSettlementsBuilt = False     # A flag to track if the players have built their starting settlements and roads
+    gameOver = False                    # A flag to track if a player has won the game
     while 1:
         # Draw the key, hexes, odds tiles, and Robber
         if not boardDrawn:
@@ -263,56 +264,61 @@ def main():
                         validAction = True
                         pygame.display.update()
             initialSettlementsBuilt = True  # Record that the players have built the initial 2 settlements and roads
-        
-        # Loop through the players to let each take their game turns
-        for player in playerList:
-            print("\n{}, it is now your turn.".format(player.name))
 
-            # Initiate the pre-harvest menu
-            actionChoice = present_menu(player, preHarvestMenu)
-            result = eval(actionChoice)
-            if not isinstance(result, int):
-                result = roll_dice(player)
-            diceResult = result
+        if not gameOver:
+            # Loop through the players to let each take their game turns
+            for player in playerList:
+                print("\n{}, it is now your turn.".format(player.name))
 
-            # Check if the roll was a 7, and have the players discards cards and play the Robber if so
-            if diceResult == 7:
-                # Discard cards for players with more than 7
-                for playerToCheck in playerList:
-                    if sum(playerToCheck.cardsInHand.values()) > 7:
-                        validAction = False
-                        while not validAction:
-                            discardDict = get_cards_to_discard_from_player(playerToCheck, resourceTypes)
-                            discardResult = playerToCheck.discard_cards(discardDict, resourceDecks)
-                            if discardResult[0] != 0:
-                                print(discardResult[1] + " Please try again.")
-                            else:
-                                validAction = True
-                robberPlay = get_robber_play_from_player(player, robber, hexes) # Ask the player how they'd like to play the Robber
-                robberResult = robber.play(screen, robberPlay[0], player, robberPlay[1])    # Attempt to make that play
-                pygame.display.update() # Update the screen to show the new location of the Robber
-                print(robberResult) # Print the result of the player stealing from someone
-            else:
-                # Have the players draw their resource cards
-                for playerDrawing in playerList:
-                    for settlement in playerDrawing.builtSettlements:
-                        playerDrawing.draw_cards(settlement.find_yield(diceResult), resourceDecks)
-                    print("{} has {}".format(playerDrawing.name, playerDrawing.cardsInHand))
-            
-            turnOver = False
-            while not turnOver:
-                actionChoice2 = present_menu(player, postHarvestMenu)
-                result = eval(actionChoice2)
-                if result[1] == "Turn is over.":
-                    turnOver = True
+                # Initiate the pre-harvest menu
+                actionChoice = present_menu(player, preHarvestMenu)
+                result = eval(actionChoice)
+                if not isinstance(result, int):
+                    result = roll_dice(player)
+                diceResult = result
 
-        screen.fill(black)
-        pygame.display.update()
+                # Check if the roll was a 7, and have the players discards cards and play the Robber if so
+                if diceResult == 7:
+                    # Discard cards for players with more than 7
+                    for playerToCheck in playerList:
+                        if sum(playerToCheck.cardsInHand.values()) > 7:
+                            validAction = False
+                            while not validAction:
+                                discardDict = get_cards_to_discard_from_player(playerToCheck, resourceTypes)
+                                discardResult = playerToCheck.discard_cards(discardDict, resourceDecks)
+                                if discardResult[0] != 0:
+                                    print(discardResult[1] + " Please try again.")
+                                else:
+                                    validAction = True
+                    robberPlay = get_robber_play_from_player(player, robber, hexes) # Ask the player how they'd like to play the Robber
+                    robberResult = robber.play(screen, robberPlay[0], player, robberPlay[1])    # Attempt to make that play
+                    pygame.display.update() # Update the screen to show the new location of the Robber
+                    print(robberResult) # Print the result of the player stealing from someone
+                else:
+                    # Have the players draw their resource cards
+                    for playerDrawing in playerList:
+                        for settlement in playerDrawing.builtSettlements:
+                            playerDrawing.draw_cards(settlement.find_yield(diceResult), resourceDecks)
+                        print("{} has {}".format(playerDrawing.name, playerDrawing.cardsInHand))
+
+                turnOver = False
+                while not turnOver:
+                    actionChoice2 = present_menu(player, postHarvestMenu)
+                    result = eval(actionChoice2)
+                    if result[1] == "Turn is over.":
+                        turnOver = True
+                        if result[2] >= 10:
+                            print("\n{} has won the game with {} points!!".format(player.name, result[3]))
+                            gameOver = True
+                if gameOver:
+                    break
+
+            screen.fill(black)
+            pygame.display.update()
+            boardDrawn = False
 
         # waits ten seconds and then starts the whole process over again
-        time.sleep(3)
-
-        boardDrawn = False
+        time.sleep(2)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
@@ -408,9 +414,12 @@ def offer_trade():
 
 # A function to complete end-of-turn checks and move to the next player
 def end_turn(player):
-    #TODO: count the player's points to see if they won
+    # Count the player's point
+    pointTotal = player.count_points()
+    player.points = pointTotal
+    # Clear the screen
     os.system('cls' if os.name == 'nt' else 'clear')
-    return (0, "Turn is over.")
+    return (0, "Turn is over.", pointTotal)
 
 def get_cards_to_discard_from_player(player, resourceTypes):
     if player.isAI:
