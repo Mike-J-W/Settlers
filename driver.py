@@ -271,7 +271,7 @@ def main():
             # Initiate the pre-harvest menu
             actionChoice = present_menu(player, preHarvestMenu)
             result = eval(actionChoice)
-            if result == None:
+            if not isinstance(result, int):
                 result = roll_dice(player)
             diceResult = result
 
@@ -423,7 +423,7 @@ def get_robber_play_from_player(player, robber, hexes):
     else:
         destinationHex = robber.currentHex  # Get the current hex of the Robber to use as a metric to determine when the player has successfully picked a new hex
         while destinationHex == robber.currentHex:
-            print("\nChoose a new hex for the Robber.")
+            print("Choose a new hex for the Robber.")
             destinationHex = get_hex_from_player(player, hexes) # Ask the player to which hex they want to move the Robber
         playersAvailableToRob = []  # A list to hold the players from whom the player can steal
         # Loop through the vertices that surround the Robber's new hex
@@ -439,7 +439,6 @@ def get_robber_play_from_player(player, robber, hexes):
         if len(playersAvailableToRob) > 1:
             print("Choose the player from whom you wish to steal.")
             playerToRob = get_player_from_player(player, playersAvailableToRob)
-        # If there is only one player from the player can steal, use that player as their target
         elif len(playersAvailableToRob) == 1:
             playerToRob = playersAvailableToRob[0]
         # Return the hex to which the Robber will be moved and the player who will be robbed
@@ -468,20 +467,18 @@ def get_player_from_player(player, playerList):
     if player.isAI:
         pass
     else:
-        playerNames = [p.name for p in playerList]  # Make a list of the player names
-        print("The players are: " + ", ".join(playerNames)) # Show the players to the player
-        playerIndex = input("{} please give a 0-based index to choose a player: ".format(player.name))  # Get the player's choice
-        # Attempt to convert the input string to an integer and reference the player object corresponding to the name
-        try:
-            chosenPlayer = playerList[int(playerIndex)]
-        # If the input was not an integer, print an error message and call the fuction again to repeat the query
-        except ValueError:
-            print("That entry was not an integer.")
-            chosenPlayer = get_player_from_player(player, playerList)
-        # If the input was not a valid index for the player list, print an error message and call the function again to repeat the query
-        except IndexError:
-            print("That index is out of the range of valid players")
-            chosenPlayer = get_player_from_player(player, playerList)
+        # Create a list of names
+        playerNames = []
+        for p in playerList:
+            if p != None:
+                playerNames.append(p.name)
+            else:
+                playerNames.append("Nobody")
+        # Make a dictionary of the player names the player objects
+        playerMenu = dict(zip(playerNames, playerList))
+        # Get the choice
+        print("Please choose a player.")
+        chosenPlayer = present_menu(player, playerMenu)
         # Return the player object corresponding to the name entered by the player
         return chosenPlayer
 
@@ -589,28 +586,21 @@ def roll_dice(player):
     # Roll the dice and print the result
     diceResult = random.randint(1,6) + random.randint(1,6)
 
-    print("\nRolling Dice now...")
-    print("\n{} rolled a(n) {}.\n".format(player.name, diceResult))
+    print("Rolling Dice now...")
+    print("{} rolled a(n) {}.\n".format(player.name, diceResult))
 
     return diceResult
 
 # Function that deals with the choice to play the knight first
 # Takes the player in question
-def play_knight_first(player,robber,hexes,largestArmy, screen):
-    validAction = False
-    while not validAction:
-
-        robberPlay = get_robber_play_from_player(player, robber, hexes) # Ask the player how they'd like to use the Robber
-        knightResult = player.play_knight(robber, robberPlay[0], robberPlay[1], largestArmy, screen)    # Attempt to make that play
-        # If unsuccessful, print the error message and repeat the loop
-        if knightResult[0] != 0:
-            print(knightResult[1])
-        # If successful, print the result of the move and end the loop
-        else:
-            validAction = True      # Set the tracker so that the loop doesn't repeat
-            print(knightResult[1])  # Print the result of the player stealing from someone
-            pygame.display.update() # Update the screen to show the new location of the Robber
-    return None
+def play_knight(player,robber,hexes,largestArmy, screen):
+    player.developmentCards.append("Knight")
+    robberPlay = get_robber_play_from_player(player, robber, hexes) # Ask the player how they'd like to use the Robber
+    knightResult = player.play_knight(robber, robberPlay[0], robberPlay[1], largestArmy, screen)    # Attempt to make that play
+    pygame.display.update()
+    print(knightResult[1])
+    print()
+    return knightResult
 
 
 
