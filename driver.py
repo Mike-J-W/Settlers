@@ -164,7 +164,7 @@ def main():
     # Construct a list of the players
     playerList = [player1, player2, player3, player4]
     # Give the players enough cards to build their first settlements and roads
-    startingHand = {grain: 8, wool: 2, clay: 4, lumber: 4}  ## TODO EDITED THIS SO I CAN TEST MARITIME TRADING
+    startingHand = {grain: 4, wool: 2, clay: 4, lumber: 4}  ## TODO EDITED THIS SO I CAN TEST MARITIME TRADING
     for player in playerList:
         player.draw_cards(startingHand, resourceDecks)
     # Shuffle the players to set the turn order
@@ -234,33 +234,20 @@ def main():
             for player in playerList: #+ playerList[::-1]:  #########TODO NEEED TO CHANGE BACK!!!
                 validAction = False     # A flag to track whether the player has completed a valid action
                 print("")               # Give a line break
-                # Repeat until the player successfully builds a settlement
                 while not validAction:
-                    print("For the settlement, ")
-                    settlementVertex = get_vertex_from_player(player, vertices, playerKey) # Ask the player for the vertex on which to build their settlement
-                    if settlementVertex != None:
-                        buildResult = player.build_town(settlementVertex, screen)   # Attempt to build and draw the settlement
-                        # If unsuccessful, print the error message and loop again
-                        if buildResult[0] != 0:
-                            print(buildResult[1] + "  Please try again")
-                        # If successful, update the screen to show the settlement and end the loop
-                        else:
-                            validAction = True      # Set the tracker so that the loop doesn't repeat
-                            pygame.display.update() # Update the screen to show the new settlement
-                validAction = False     # Reset the valid action tracker
+                    print("For the settlement:")
+                    buildResult = build_settlement(player, vertices, screen, playerKey)
+                    if buildResult[0] == 0:
+                        validAction = True
+                        pygame.display.update()
+                validAction = False
                 # Repeat until the player successfully builds a road
                 while not validAction:
                     print("For the heading of the road from that settlement:")
-                    roadDestinationVertex = get_vertex_from_player(player, vertices, playerKey)    # Ask the player for the vertex to which their road goes
-                    if roadDestinationVertex != None:
-                        buildResult = player.build_road(settlementVertex, roadDestinationVertex, longestRoad, screen)   # Attempt to build and draw the road
-                        # If unsuccessful, print the error message and loop again
-                        if buildResult[0] != 0:
-                            print(buildResult[1] + "  Please try again")
-                        # If successful, update the screen and end the loop
-                        else:
-                            validAction = True
-                            pygame.display.update()
+                    buildResult = build_road(player, vertices, longestRoad, screen, playerKey)
+                    if buildResult[0] == 0:
+                        validAction = True
+                        pygame.display.update()
             initialSettlementsBuilt = True  # Record that the players have built the initial 2 settlements and roads
 
         if not gameOver:
@@ -345,7 +332,7 @@ def build_road(player, vertexList, longestRoad, screen, playerKey):
 def build_settlement(player, vertexList, screen, playerKey):
     successfulBuild = False
     while not successfulBuild:
-        print("Pick the vertex desired for the settlement.")
+        print("{}, pick the vertex desired for the settlement.".format(player.name))
         vertexToSettle = get_vertex_from_player(player, vertexList, playerKey)
         if vertexToSettle == None:
             return (1, "No vertex selected. Returning.")
