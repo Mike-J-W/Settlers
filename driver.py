@@ -320,8 +320,8 @@ def main():
 
 # A function to take the player's input and build a road
 def build_road(player, vertexList, longestRoad, screen):
-    successfullBuild = False
-    while not successfullBuild:
+    successfulBuild = False
+    while not successfulBuild:
         print("Pick the first vertex.")
         vertex1 = get_vertex_from_player(player, vertexList)
         print("Pick the second vertex.")
@@ -329,13 +329,23 @@ def build_road(player, vertexList, longestRoad, screen):
         result = player.build_road(vertex1, vertex2, longestRoad, screen)
         print(result[1])
         if result[0] == 0:
-            successfullBuild = True
+            successfulBuild = True
     pygame.display.update()
     return (0, "Road built!")
 
 # A function to take the player's input and build a settlement
-def build_settlement():
-    pass
+def build_settlement(player, vertexList, screen):
+    successfulBuild = False
+    while not successfulBuild:
+        print("Pick the vertex desired for the settlement.")
+        vertexToSettle = get_vertex_from_player(player, vertexList)
+        result = player.build_town(vertexToSettle, screen)
+        print(result[1])
+        if result[0] == 0:
+            successfulBuild = True
+    pygame.display.update()
+    return (0, "Settlement built!")
+
 
 # A function to take the player's input and upgrade a settlement
 def upgrade_settlement():
