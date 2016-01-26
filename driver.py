@@ -164,7 +164,7 @@ def main():
     # Construct a list of the players
     playerList = [player1, player2, player3, player4]
     # Give the players enough cards to build their first settlements and roads
-    startingHand = {grain: 4, wool: 2, clay: 4, lumber: 4}  ## TODO EDITED THIS SO I CAN TEST MARITIME TRADING
+    startingHand = {grain: 4, wool: 2, clay: 4, lumber: 4, ore: 3}  ## TODO EDITED THIS TO TEST MARITIME TRADING & BUILDING
     for player in playerList:
         player.draw_cards(startingHand, resourceDecks)
     # Shuffle the players to set the turn order
@@ -236,15 +236,15 @@ def main():
                 print("")               # Give a line break
                 while not validAction:
                     print("For the settlement:")
-                    buildResult = build_settlement(player, vertices, screen, playerKey)
+                    buildResult = build_settlement(player, vertices, resourceDecks, screen, playerKey)
                     if buildResult[0] == 0:
                         validAction = True
                         pygame.display.update()
                 validAction = False
                 # Repeat until the player successfully builds a road
                 while not validAction:
-                    print("For the heading of the road from that settlement:")
-                    buildResult = build_road(player, vertices, longestRoad, screen, playerKey)
+                    print("For the road from that settlement:")
+                    buildResult = build_road(player, vertices, longestRoad, resourceDecks, screen, playerKey)
                     if buildResult[0] == 0:
                         validAction = True
                         pygame.display.update()
@@ -275,7 +275,11 @@ def main():
                                     print(discardResult[1] + " Please try again.")
                                 else:
                                     validAction = True
-                    robberPlay = get_robber_play_from_player(player, robber, hexes) # Ask the player how they'd like to play the Robber
+                    playChosen = False
+                    while not playChosen:
+                        robberPlay = get_robber_play_from_player(player, robber, hexes, playerKey) # Ask the player how they'd like to play the Robber
+                        if robberPlay[0] == 0:
+                            playChosen = True
                     robberResult = robber.play(screen, robberPlay[0], player, robberPlay[1])    # Attempt to make that play
                     pygame.display.update() # Update the screen to show the new location of the Robber
                     print(robberResult) # Print the result of the player stealing from someone
@@ -285,6 +289,7 @@ def main():
                         for settlement in playerDrawing.builtSettlements:
                             playerDrawing.draw_cards(settlement.find_yield(diceResult), resourceDecks)
                         print("{} has {}".format(playerDrawing.name, playerDrawing.cardsInHand))
+                    print("The decks have {}".format(resourceDecks))
 
                 turnOver = False
                 while not turnOver:
@@ -310,7 +315,7 @@ def main():
 
 
 # A function to take the player's input and build a road
-def build_road(player, vertexList, longestRoad, screen, playerKey):
+def build_road(player, vertexList, longestRoad, resourceDecks, screen, playerKey):
     successfulBuild = False
     while not successfulBuild:
         print("Pick the first vertex.")
@@ -321,7 +326,7 @@ def build_road(player, vertexList, longestRoad, screen, playerKey):
         vertex2 = get_vertex_from_player(player, vertex1.adjacentVertices, playerKey)
         if vertex2 == None:
             return (1, "No vertex picked. Returning")
-        result = player.build_road(vertex1, vertex2, longestRoad, screen)
+        result = player.build_road(vertex1, vertex2, longestRoad, resourceDecks, screen)
         print(result[1])
         if result[0] == 0:
             successfulBuild = True
@@ -329,14 +334,14 @@ def build_road(player, vertexList, longestRoad, screen, playerKey):
     return (0, "Road built!")
 
 # A function to take the player's input and build a settlement
-def build_settlement(player, vertexList, screen, playerKey):
+def build_settlement(player, vertexList, resourceDecks, screen, playerKey):
     successfulBuild = False
     while not successfulBuild:
         print("{}, pick the vertex desired for the settlement.".format(player.name))
         vertexToSettle = get_vertex_from_player(player, vertexList, playerKey)
         if vertexToSettle == None:
             return (1, "No vertex selected. Returning.")
-        result = player.build_town(vertexToSettle, screen)
+        result = player.build_town(vertexToSettle, resourceDecks, screen)
         print(result[1])
         if result[0] == 0:
             successfulBuild = True
@@ -345,8 +350,19 @@ def build_settlement(player, vertexList, screen, playerKey):
 
 
 # A function to take the player's input and upgrade a settlement
-def upgrade_settlement():
-    pass
+def upgrade_settlement(player, vertexList, resourceDecks, screen, playerKey):
+    successfulUpgrade = False
+    while not successfulUpgrade:
+        print("{}, pick the town you wish to upgrade.".format(player.name))
+        vertexToUpgrade = get_vertex_from_player(player, vertexList, playerKey)
+        if vertexToUpgrade == None:
+            return(1, "No vertex selected. Returning.")
+        result = player.build_city(vertexToUpgrade, resourceDecks, screen)
+        print(result[1])
+        if result[0] == 0:
+            successfulUpgrade = True
+    pygame.display.update()
+    return (0, "Settlement upgraded!")
 
 # A function to buy a devlopment card for a player
 def buy_development_card():
@@ -456,6 +472,8 @@ def get_robber_play_from_player(player, robber, hexes, playerKey):
         while destinationHex == robber.currentHex:
             print("Choose a new hex for the Robber.")
             destinationHex = get_hex_from_player(player, hexes, playerKey) # Ask the player to which hex they want to move the Robber
+        if destinationHex == None:
+            return (1, "No hex selected. Returning.")
         playersAvailableToRob = []  # A list to hold the players from whom the player can steal
         # Loop through the vertices that surround the Robber's new hex
         for vertex in destinationHex.vertices:
@@ -642,6 +660,8 @@ def roll_dice(player):
 def play_knight(player,robber,hexes,largestArmy, screen, playerKey):
     player.developmentCards.append("Knight")
     robberPlay = get_robber_play_from_player(player, robber, hexes, playerKey) # Ask the player how they'd like to use the Robber
+    if robberPlay[0] == 1:
+        return (1, "{} chose not to play the Knight.".format(player.name))
     knightResult = player.play_knight(robber, robberPlay[0], robberPlay[1], largestArmy, screen)    # Attempt to make that play
     pygame.display.update()
     print(knightResult[1])

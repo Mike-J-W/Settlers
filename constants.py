@@ -27,8 +27,8 @@ playerColors = {"red": playerRed, "blue": playerBlue, "green": playerGreen, "pur
 preHarvestMenu = dict(zip(["Harvest your resources (AKA roll the dice)", "Play a Knight (if possible) and then harvest resources"], ["roll_dice(player)", "play_knight(player,robber,hexes,largestArmy,screen,playerKey)"]))
 postHarvestMenu = dict(zip(["Build a road", "Build a settlement", "Upgrade a settlement", "Buy a development card", "Play a knight",
                             "Play a monopoly card", "Play a year of plenty card", "Play a road building card", "Make a maritime trade", "Offer a trade to players", "End turn"],
-                           ["build_road(player, vertices, longestRoad, screen, playerKey)", "build_settlement(player, vertices, screen, playerKey)", "upgrade_settlement()", "buy_card()", "play_knight()", "play_monopoly()",
-                            "play_yop_card()", "play_road_building()", "maritime_trade()", "offer_trade()", "end_turn(player)"]))
+                           ["build_road(player, vertices, longestRoad, resourceDecks, screen, playerKey)", "build_settlement(player, vertices, resourceDecks, screen, playerKey)", "upgrade_settlement(player, vertices, resourceDecks, screen, playerKey)",
+                            "buy_card()", "play_knight()", "play_monopoly()", "play_yop_card()", "play_road_building()", "maritime_trade()", "offer_trade()", "end_turn(player)"]))
 
 
 # Set the piece and image sizes

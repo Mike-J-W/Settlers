@@ -197,7 +197,7 @@ class Player(object):
         self.cardsInHand = {wool: 0, grain: 0, lumber: 0, clay: 0, ore: 0}
         self.tradeRatios = {wool: 4, grain: 4, lumber: 4, clay: 4, ore: 4}
     
-    def build_town(self, vertexToSettle, screen):
+    def build_town(self, vertexToSettle, resourceDecks, screen):
         townCost = [grain, wool, clay, lumber]
         for resource in townCost:
             if self.cardsInHand[resource] == 0:
@@ -206,6 +206,14 @@ class Player(object):
             return (3, "That vertex cannot be built upon.")
         if self.unbuiltSettlements == []:
             return (4, "{} does not have any towns to build.".format(self.name))
+        if len(self.builtSettlements) >= 2:
+            onRoad = False
+            for road in self.builtRoads:
+                if vertexToSettle == road.vertex1 or vertexToSettle == road.vertex2:
+                    onRoad = True
+                    break
+            if not onRoad:
+                return (5, "The proposed settlement does not connect to any of {}'s roads.".format(self.name))
         for settlement in self.unbuiltSettlements:
             if settlement.scale == 1:
                 self.unbuiltSettlements.remove(settlement)
@@ -214,8 +222,8 @@ class Player(object):
                 vertexToSettle.settlement = settlement
                 for vertex in [vertexToSettle] + vertexToSettle.adjacentVertices:
                     vertex.canBeSettled = False
-                for resource in townCost:
-                    self.cardsInHand[resource] -= 1
+                townCostDict = dict(zip(townCost, [1,1,1,1]))
+                self.discard_cards(townCostDict, resourceDecks)
                 settlement.draw_settlement(screen)
                 if settlement.vertex.port != None:
                     for rsc in settlement.vertex.port.resources:
@@ -224,24 +232,29 @@ class Player(object):
                 return (0, "Success!")
         return (1, "Failed to build the town for an unknown reason.")
     
-    def build_city(self, vertexToUpgrade):
+    def build_city(self, vertexToUpgrade, resourceDecks, screen):
         if self.cardsInHand[grain] < 2 or self.cardsInHand[ore] < 3:
-            return 1
-        if vertexToUpgrade.settlement not in builtSettlements or vertexToUpgrade.settlement.scale == 2:
-            return 1
+            return (2, "{} does not have enough resources to upgrade a settlement".format(self.name))
+        if 2 not in [s.scale for s in self.unbuiltSettlements]:
+            return (3, "{} does not have any cities left to play.".format(self.name))
+        if vertexToUpgrade.settlement not in self.builtSettlements:
+            return (4, "{} does not have a settlement on that vertex.".format(self.name))
+        if vertexToUpgrade.settlement.scale == 2:
+            return (5, "That settlement has already been upgraded.")
         for settlement in self.unbuiltSettlements:
             if settlement.scale == 2:
                 self.unbuiltSettlements.remove(settlement)
                 self.builtSettlements.append(settlement)
-                self.builtSettlements.remove(vertex.settlement)
-                self.unbuiltSettlements.append(vertex.settlement)
-                vertex.settlement = settlement
-                self.cardsInHand[grain] -= 2
-                self.cardsInHand[ore] -= 3
-                return 0
-        return 1
+                self.builtSettlements.remove(vertexToUpgrade.settlement)
+                self.unbuiltSettlements.append(vertexToUpgrade.settlement)
+                vertexToUpgrade.settlement = settlement
+                settlement.vertex = vertexToUpgrade
+                self.discard_cards({grain:2, ore:3}, resourceDecks)
+                settlement.draw_settlement(screen)
+                return (0, "Success!")
+        return (1, "Failed to upgrade the settlement for an unknown reason")
     
-    def build_road(self, vertex1, vertex2, longestRoad, screen):
+    def build_road(self, vertex1, vertex2, longestRoad, resourceDecks, screen):
         if self.unbuiltRoads == []:
             return (2, "{} does not have any roads to build".format(self.name))
         if self.cardsInHand[lumber] == 0 or self.cardsInHand[clay] == 0 or self.unbuiltRoads == []:
@@ -252,10 +265,15 @@ class Player(object):
             for road in vertex1.roads:
                 if road.vertex1 == vertex2 or road.vertex2 == vertex2:
                     return (5, "A road already exists along that path.")
+        contiguousRoad = False
         if self.builtRoads != []:
-            contiguousRoad = False
             for road in self.builtRoads:
                 if vertex1 == road.vertex1 or vertex1 == road.vertex2 or vertex2 == road.vertex1 or vertex2 == road.vertex2:
+                    contiguousRoad = True
+                    break
+        if not contiguousRoad:
+            for settlement in self.builtSettlements:
+                if vertex1 == settlement.vertex or vertex2 == settlement.vertex:
                     contiguousRoad = True
                     break
             if not contiguousRoad:
@@ -267,8 +285,7 @@ class Player(object):
         vertex1.roads.append(newRoad)
         newRoad.vertex2 = vertex2
         vertex2.roads.append(newRoad)
-        self.cardsInHand[lumber] -= 1
-        self.cardsInHand[clay] -= 1
+        self.discard_cards({lumber:1, clay:1}, resourceDecks)
         longestRoad.determine_owner()
         newRoad.draw_road(screen)
         return (0, "Success!")
@@ -354,7 +371,7 @@ class Player(object):
         for resource in cardsToDiscard.keys():
             self.cardsInHand[resource] -= cardsToDiscard[resource]
             resourceDecks[resource] += cardsToDiscard[resource]
-            return (0, "Success!")
+        return (0, "Success!")
     
     def draw_cards(self, cardsToDraw, resourceDecks):
         for resource in cardsToDraw.keys():
