@@ -295,6 +295,7 @@ def main():
                 while not turnOver:
                     actionChoice2 = present_menu(player, postHarvestMenu)
                     result = eval(actionChoice2)
+                    print(result[1])
                     if result[1] == "Turn is over.":
                         turnOver = True
                         if result[2] >= 10:
@@ -373,8 +374,22 @@ def play_monopoly_card():
     pass
 
 # A function to take the player's input and play a year of plenty card
-def play_yop_card():
-    pass
+def play_yop_card(player, resourceDecks):
+    player.developmentCards.append("Year of Plenty")
+    if "Year of Plenty" not in player.developmentCards:
+        return (1, "{} does not have a Year of Plenty to play.".format(player.name))
+    availableResources = [resource for resource in resourceDecks.keys() if resourceDecks[resource] > 0]
+    print("{}, choose the first resource to draw.".format(player.name))
+    resource1 = present_menu(player, dict(zip(availableResources + ["Cancel and return to main menu"], availableResources + [None])))
+    if resource1 == None:
+        return (2, "{} chose to not play a Year of Plenty.".format(player.name))
+    player.draw_cards({resource1: 1}, resourceDecks)
+    availableResources = [resource for resource in resourceDecks.keys() if resourceDecks[resource] > 0]
+    print("{}, choose the second resource to draw.".format(player.name))
+    resource2 = present_menu(player, dict(zip(availableResources, availableResources)))
+    player.draw_cards({resource2: 1}, resourceDecks)
+    player.developmentCards.remove("Year of Plenty")
+    return (0, "{} has used Year of Plenty to draw {} and {}".format(player.name, resource1, resource2))
 
 # A function to take the player's input and play a road building card
 def play_road_building():
