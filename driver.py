@@ -13,6 +13,7 @@ def main():
     # Initialize all the game pieces
 
     random.shuffle(resourcesForHexes) # Shuffle the list of hex resources
+    random.shuffle(developmentDeck)   # Shuffle the deck of Development Cards
 
     # Making the odds tiles placed on top of the he7]]
     oddsOrdered = [0] * 19    # A list to hold the odds tiles placed in random order
@@ -280,7 +281,7 @@ def main():
                         robberPlay = get_robber_play_from_player(player, robber, hexes, playerKey) # Ask the player how they'd like to play the Robber
                         if robberPlay[0] == 0:
                             playChosen = True
-                    robberResult = robber.play(screen, robberPlay[0], player, robberPlay[1])    # Attempt to make that play
+                    robberResult = robber.play(screen, robberPlay[1], player, robberPlay[2])    # Attempt to make that play
                     pygame.display.update() # Update the screen to show the new location of the Robber
                     print(robberResult) # Print the result of the player stealing from someone
                 else:
@@ -366,16 +367,25 @@ def upgrade_settlement(player, vertexList, resourceDecks, screen, playerKey):
     return (0, "Settlement upgraded!")
 
 # A function to buy a devlopment card for a player
-def buy_development_card():
-    pass
+def buy_development_card(player, resourceDecks, developmentDeck):
+    buyResult = player.buy_development_card(developmentDeck, resourceDecks)
+    print(buyResult[1])
+    return buyResult
 
 # A function to take the player's input and play a monopoly card
-def play_monopoly_card():
-    pass
+def play_monopoly_card(player, playerList):
+    print("{}, which resource do you want to monopolize?".format(player.name))
+    resourceMenu = dict(zip(resourceTypes, resourceTypes))
+    resourceMenu["Cancel"] = "Cancel"
+    choice = present_menu(player, dict(zip(resourceTypes, resourceTypes)))
+    if choice == "Cancel":
+        return (2, "{} cancelled the play. Returning.")
+    monopolyResult = player.play_monopoly(playerList, choice)
+    print(monopolyResult[1])
+    return monopolyResult
 
 # A function to take the player's input and play a year of plenty card
 def play_yop_card(player, resourceDecks):
-    player.developmentCards.append("Year of Plenty")
     if "Year of Plenty" not in player.developmentCards:
         return (1, "{} does not have a Year of Plenty to play.".format(player.name))
     availableResources = [resource for resource in resourceDecks.keys() if resourceDecks[resource] > 0]
@@ -506,7 +516,7 @@ def get_robber_play_from_player(player, robber, hexes, playerKey):
         elif len(playersAvailableToRob) == 1:
             playerToRob = playersAvailableToRob[0]
         # Return the hex to which the Robber will be moved and the player who will be robbed
-        return (destinationHex, playerToRob)
+        return (0, destinationHex, playerToRob)
 
 # A function to get the player's decision on whether to play a knight before their roll
 # Takes the player to be queried
@@ -656,9 +666,9 @@ def present_menu(player, menuDict):
             except:
                 print("not a valid option.  try again")
                 continue
-            action = menuDict[optKey]
+            choice = menuDict[optKey]
             validOptionFound = True
-        return action
+        return choice
 
 # Function that simply rolls the dice and returns the result
 def roll_dice(player):
@@ -677,7 +687,7 @@ def play_knight(player,robber,hexes,largestArmy, screen, playerKey):
     robberPlay = get_robber_play_from_player(player, robber, hexes, playerKey) # Ask the player how they'd like to use the Robber
     if robberPlay[0] == 1:
         return (1, "{} chose not to play the Knight.".format(player.name))
-    knightResult = player.play_knight(robber, robberPlay[0], robberPlay[1], largestArmy, screen)    # Attempt to make that play
+    knightResult = player.play_knight(robber, robberPlay[1], robberPlay[2], largestArmy, screen)    # Attempt to make that play
     pygame.display.update()
     print(knightResult[1])
     print()

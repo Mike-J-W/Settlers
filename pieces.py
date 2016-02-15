@@ -290,19 +290,15 @@ class Player(object):
         newRoad.draw_road(screen)
         return (0, "Success!")
     
-    def buy_development_card(self, deck):
-        if ore in self.cardsInHand and grain in self.cardsInHand and wool in self.cardsInHand:
-            newCard = deck.draw()
-            if newCard == "Empty":
-                return 1
-            else:
-                self.developmentCards.append(newCard)
-                self.cardsInHand.remove(ore)
-                self.cardsInHand.remove(grain)
-                self.cardsInHand.remove(wool)
-                return 0
-        else:
-            return 1
+    def buy_development_card(self, developmentDeck, resourceDecks):
+        if ore not in self.cardsInHand or grain not in self.cardsInHand or wool not in self.cardsInHand:
+            return (1, "{} does not have enough resources to buy a Development Card.".format(self.name))
+        newCard = developmentDeck.draw()
+        if newCard == "Empty":
+            return (2, "There are no Development Cards left.")
+        self.developmentCards.append(newCard)
+        self.discard_cards({ore: 1, grain: 1, wool: 1}, resourceDecks)
+        return (0, "Success! {} bought a {}.".format(self.name, newCard))
 
     def play_knight(self, robber, newHex, playerToRob, largestArmy, screen):
         if "Knight" in self.developmentCards:
@@ -314,16 +310,17 @@ class Player(object):
             return (1, "{} does not have any Knights to play.".format(self.name))
                 
     def play_monopoly(self, playerList, resourceWanted):
-        if "Monopoly" in self.developmentCards:
-            self.developmentCards.remove("Monopoly")
-            for player in playerList.remove(self):
-                originalHandSize = len(player.cardsInHand)
-                player.cardsInHand = [card for card in player.cardsInHand if card != resourceWanted]
-                cardsRemoved = originalHandSize - len(player.cardsInHand)
-                self.cardsInHand += cardsRemoved * [resourceWanted]
-            return 0
-        else:
-            return 1
+        if "Monopoly" not in self.developmentCards:
+            return (1, "{} does not have a Monopoly Card to play.".format(self.name))
+        self.developmentCards.remove("Monopoly")
+        playerListCopy = playerList.copy()
+        playerListCopy.remove(self)
+        originalCount = self.cardsInHand[resourceWanted]
+        for player in playerListCopy:
+            self.cardsInHand[resourceWanted] += player.cardsInHand[resourceWanted]
+            player.cardsInHand[resourceWanted] = 0
+        takenCount = self.cardsInHand[resourceWanted] - originalCount
+        return (0, "Success! {} gained {} {} cards.".format(self.name, takenCount, resourceWanted))
 
     def play_year_of_plenty(self, cardsDesired):
         if "Year of Plenty" in self.developmentCards:
