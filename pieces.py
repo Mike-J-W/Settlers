@@ -476,12 +476,12 @@ class Player_Key(object):
         self.background = (255,255,255)
         self.box = pygame.Rect(int(round(hexEdgeLength/2)), int(round(hexEdgeLength/2)), 120, 120)
         self.keyFont = keyFont
-        self.title = self.keyFont.render("Player Key", 1, (0,0,0))
+        self.title = self.keyFont.render("Player Key", 1, black)
         self.titleCoordinates = (int(round(hexEdgeLength/2)) + 5, int(round(hexEdgeLength/2)))
         defaultColorBox = pygame.Rect(int(round(hexEdgeLength/2)) + 5, int(round(hexEdgeLength/2)) + 25, colorBoxEdgeLength, colorBoxEdgeLength)
         self.colorBoxes = [defaultColorBox.move(0, i * 25) for i in range(4)]
         self.playerColors = [p.color for p in playerList]
-        self.playerLabels = [self.keyFont.render(p.name, 1, (0,0,0)) for p in playerList]
+        self.playerLabels = [self.keyFont.render(p.name, 1, black) for p in playerList]
         self.playerLabelCoordinates = [(int(round(hexEdgeLength/2)) + 27, int(round(hexEdgeLength/2)) + 22 + (i * 25)) for i in range(4)]
 
     def draw(self, surface):

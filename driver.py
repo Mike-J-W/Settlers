@@ -148,14 +148,16 @@ def main():
     ## Pygame initialization
     pygame.init()
     screen = pygame.display.set_mode(screenSize)    # opens the window with the size specifications given
-    myfont = pygame.font.SysFont("comicsansms", 25) # sets the font and size
-    keyFont = pygame.font.SysFont("Arial", 15)      # set the font and size for the player key
+    comicsansLargeFont = pygame.font.SysFont("comicsansms", 25) # sets the font and size
+    arialSmallFont = pygame.font.SysFont("Arial", 15)      # set the font and size for the player key
     pygame.event.set_allowed(None)
     pygame.event.set_allowed([pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN, pygame.QUIT])
     # Create the Player Key
-    playerKey = Player_Key(keyFont, playerList)
+    playerKey = Player_Key(arialSmallFont, playerList)
     boardSurface = screen.subsurface((0,0), oceanSize)
-    menuSurface = screen.subsurface((oceanWidth,0), (gameMenuWidth,oceanHeight))
+    playerHandSurface = screen.subsurface((oceanWidth,0), (gameMenuWidth,100))
+    playerHandSurface.fill(white)
+    menuSurface = screen.subsurface((oceanWidth, 100), (gameMenuWidth, oceanHeight-100))
     menuSurface.fill(white)
     logSurface = screen.subsurface((oceanWidth + gameMenuWidth + 1, 0), (gameEventLogWidth - 1, oceanHeight))
     logSurface.fill(white)
@@ -179,9 +181,9 @@ def main():
                     resourceOdds = str(hex.odds)    # Record the hex's odds tile
                     # Set the color of the odds number's text based on the value
                     if resourceOdds == "6" or resourceOdds == "8":
-                        label = myfont.render(resourceOdds, 1, red)
+                        label = comicsansLargeFont.render(resourceOdds, 1, red)
                     else:
-                        label = myfont.render(resourceOdds, 1, black)
+                        label = comicsansLargeFont.render(resourceOdds, 1, black)
                     boardSurface.blit(label, (hex.coordinates))   # Place the number on the screen
             # Draw the Robber
             robber.draw_robber(boardSurface)
@@ -230,6 +232,9 @@ def main():
             for player in playerList:
                 print("\n{}, it is now your turn.".format(player.name))
 
+                draw_player_hand(player, playerHandSurface, comicsansLargeFont, arialSmallFont)
+                pygame.display.update(playerHandSurface.get_rect())
+
                 # Initiate the pre-harvest menu
                 actionChoice = present_menu(player, preHarvestMenu)
                 result = eval(actionChoice)
@@ -268,6 +273,8 @@ def main():
 
                 turnOver = False
                 while not turnOver:
+                    draw_player_hand(player, playerHandSurface, comicsansLargeFont, arialSmallFont)
+                    pygame.display.update(playerHandSurface.get_rect())
                     actionChoice2 = present_menu(player, postHarvestMenu)
                     result = eval(actionChoice2)
                     print(result[1])
@@ -665,8 +672,25 @@ def play_knight(player,robber,hexes,largestArmy, surface, playerKey):
     return knightResult
 
 
-def draw_player_hand(player, menuSurface):
-    pass
+def draw_player_hand(player, surface, titleFont, infoFont):
+    surface.fill(white)
+    titleColorBox = pygame.Rect((25,12), (25,25))
+    titleLabel = titleFont.render("'s Hand", 1, black)
+    pygame.draw.rect(surface, player.color, titleColorBox)
+    surface.blit(titleLabel, (50, 7))
+
+    boxEdgeLength = 15
+    for i, resource in enumerate(resourceTypes):
+        x = ((i % 3) * 55) + 20
+        if i < 3:
+            y = 47
+        else:
+            y = 72
+        box = pygame.Rect((x,y), (boxEdgeLength,boxEdgeLength))
+        pygame.draw.rect(surface, resourceToColor[resource], box)
+        label = infoFont.render(" - {}".format(player.cardsInHand[resource]), 1, black)
+        surface.blit(label, (x+16, y))
+
 
 
 if __name__ == "__main__":
