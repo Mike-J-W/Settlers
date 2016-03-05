@@ -2,6 +2,7 @@ import math
 import random
 import pygame
 import time
+from constants import *
 
 lumber = "Wood"
 grain = "Wheat"
@@ -14,11 +15,11 @@ resourceTypes = [lumber, grain, wool, clay, ore]
 # A hex piece that defines the board
 # Has resource type, number on the hex, whether the hex has the robber on it, and graphical position
 class Hex(object):
-    def __init__(self, resource, odds, color, coordinates, edgeLength):
+    def __init__(self, resource, odds, color, coordinates):
         self.resource = resource
         self.odds = odds
         self.color = color
-        self.edgeLength = edgeLength
+        self.edgeLength = hexEdgeLength
         self.radius = int(round(self.edgeLength * math.sqrt(3) / 2.0))
         self.vertices = [None, None, None, None, None, None]
         self.hasRobber = False
@@ -46,12 +47,12 @@ class Vertex(object):
 # Has scale (1 for town, 2 for city), owner of settlement, and location
 # Function for determining the resources yieled by a dice roll
 class Settlement(object):
-    def __init__(self, scale, player, edgeLength):
+    def __init__(self, scale, player):
         self.scale = scale
         self.owner = player
         self.vertex = None
-        self.edgeLength = edgeLength
-        self.circumradius = int(round(math.sqrt(50 + 10 * math.sqrt(5)) * edgeLength / 10))
+        self.edgeLength = settlementEdgeLength
+        self.circumradius = int(round(math.sqrt(50 + 10 * math.sqrt(5)) * self.edgeLength / 10))
     
     def find_yield(self, roll):
         yieldedResources = dict(zip(resourceTypes, [0,0,0,0,0]))
@@ -60,9 +61,9 @@ class Settlement(object):
                 yieldedResources[hex.resource] += self.scale
         return yieldedResources
 
-    def draw_settlement(self, screen):
+    def draw_settlement(self, surface):
         if self.scale == 1:
-            pygame.draw.rect(screen, self.owner.color, pygame.Rect(self.vertex.coordinates[0] - self.edgeLength / 2, self.vertex.coordinates[1] - self.edgeLength / 2, self.edgeLength, self.edgeLength))
+            pygame.draw.rect(surface, self.owner.color, pygame.Rect(self.vertex.coordinates[0] - self.edgeLength / 2, self.vertex.coordinates[1] - self.edgeLength / 2, self.edgeLength, self.edgeLength))
         else:
             x1 = int(round(math.sqrt(10 + 2 * math.sqrt(5)) * self.circumradius / 4))
             y1 = int(round((math.sqrt(5) - 1) * self.circumradius / 4))
@@ -73,20 +74,20 @@ class Settlement(object):
             p3 = (self.vertex.coordinates[0] + x2, self.vertex.coordinates[1] + y2)
             p4 = (self.vertex.coordinates[0] - x2, self.vertex.coordinates[1] + y2)
             p5 = (self.vertex.coordinates[0] - x1, self.vertex.coordinates[1] - y1)
-            pygame.draw.polygon(screen, self.owner.color, [p1,p2,p3,p4,p5])
+            pygame.draw.polygon(surface, self.owner.color, [p1,p2,p3,p4,p5])
 
 
 # A road connecting settlements
 # Has owner of road, and the vertices on both ends of the road
 class Road(object):
-    def __init__(self, player, width):
+    def __init__(self, player):
         self.owner = player
         self.vertex1 = None
         self.vertex2 = None
-        self.width = width
+        self.width = roadWidth
 
-    def draw_road(self, screen):
-        pygame.draw.line(screen, self.owner.color, self.vertex1.coordinates, self.vertex2.coordinates, self.width)
+    def draw_road(self, surface):
+        pygame.draw.line(surface, self.owner.color, self.vertex1.coordinates, self.vertex2.coordinates, self.width)
 
 
 # A port along the coast
@@ -97,7 +98,7 @@ class Port(object):
         self.rate = rate
         self.vertices = []
 
-    def draw_port(self, screen, color):
+    def draw_port(self, surface, color):
         neighborVertices = []
         for vertex in self.vertices:
             adjVerOptions = list(vertex.adjacentVertices)
@@ -126,26 +127,26 @@ class Port(object):
             outerCornerX = self.vertices[0].coordinates[0] + int(round((outerCornerY - self.vertices[0].coordinates[1]) * runs[0] / rises[0]))
         cornerA = (self.vertices[indexA].coordinates[0] + int(round(runs[indexA] * 0.25)), self.vertices[indexA].coordinates[1] + int(round(rises[indexA] * 0.25)))
         cornerB = (self.vertices[indexB].coordinates[0] + int(round(runs[indexB] * 0.25)), self.vertices[indexB].coordinates[1] + int(round(rises[indexB] * 0.25)))
-        pygame.draw.polygon(screen, color, [(outerCornerX,outerCornerY), cornerA, cornerB])
+        pygame.draw.polygon(surface, color, [(outerCornerX,outerCornerY), cornerA, cornerB])
 
 
 # The Robber piece
 # Has the current location of the Robber
 # Functions for moving the Robber and stealing a resource card
 class Robber(object):
-    def __init__(self, desertHex, radius):
+    def __init__(self, desertHex):
         self.currentHex = desertHex
-        self.radius = radius
+        self.radius = robberRadius
         self.color = (15,15,15)
         self.coordinates = (self.currentHex.coordinates[0] - int(round(self.radius / 2)), self.currentHex.coordinates[1] - int(round(self.radius / 2)))
     
-    def move(self, newHex, screen):
-        pygame.draw.circle(screen, self.currentHex.color, self.coordinates, self.radius)
+    def move(self, newHex, surface):
+        pygame.draw.circle(surface, self.currentHex.color, self.coordinates, self.radius)
         self.currentHex.hasRobber = False
         self.currentHex = newHex
         newHex.hasRobber = True
         self.coordinates = (self.currentHex.coordinates[0] - int(round(self.radius / 2)), self.currentHex.coordinates[1] - int(round(self.radius / 2)))
-        self.draw_robber(screen)
+        self.draw_robber(surface)
 
     def steal_from(self, playerToRob):
         targetCards = playerToRob.cardsInHand
@@ -160,8 +161,8 @@ class Robber(object):
             playerToRob.cardsInHand[cardStolen] -= 1
             return cardStolen
 
-    def play(self, screen, newHex, playerRobbing, playerToRob):
-        self.move(newHex, screen)
+    def play(self, surface, newHex, playerRobbing, playerToRob):
+        self.move(newHex, surface)
         if playerToRob == None:
             return "{} moved the Robber and drew nothing from Nobody.".format(playerRobbing.name)
         else:
@@ -170,8 +171,8 @@ class Robber(object):
                 playerRobbing.cardsInHand[newCard] += 1
             return "{} moved the Robber and drew {} from {}.".format(playerRobbing.name, newCard, playerToRob.name)
 
-    def draw_robber(self, screen):
-        pygame.draw.circle(screen, self.color, self.coordinates, self.radius)
+    def draw_robber(self, surface):
+        pygame.draw.circle(surface, self.color, self.coordinates, self.radius)
 
 
 # A player in the game
@@ -180,16 +181,16 @@ class Robber(object):
 #     Largest_Army, and list of resource cards in hand
 # Functions for each action a player can take during their turn
 class Player(object):
-    def __init__(self, name, color, isAI, settlementEdgeLength, roadWidth):
+    def __init__(self, name, color, isAI):
         self.name = name
         self.color = color
         self.isAI = isAI
         self.points = 0
         self.builtSettlements = []
-        self.unbuiltSettlements = [Settlement(1, self, settlementEdgeLength) for x in range(5)]
-        self.unbuiltSettlements += [Settlement(2, self, settlementEdgeLength) for x in range(4)]
+        self.unbuiltSettlements = [Settlement(1, self) for x in range(5)]
+        self.unbuiltSettlements += [Settlement(2, self) for x in range(4)]
         self.builtRoads = []
-        self.unbuiltRoads = [Road(self, roadWidth) for x in range(15)]
+        self.unbuiltRoads = [Road(self) for x in range(15)]
         self.developmentCards = []
         self.armySize = 0
         self.hasLongestRoad = False
@@ -197,7 +198,7 @@ class Player(object):
         self.cardsInHand = {wool: 0, grain: 0, lumber: 0, clay: 0, ore: 0}
         self.tradeRatios = {wool: 4, grain: 4, lumber: 4, clay: 4, ore: 4}
     
-    def build_town(self, vertexToSettle, resourceDecks, screen):
+    def build_town(self, vertexToSettle, resourceDecks, surface):
         townCost = [grain, wool, clay, lumber]
         for resource in townCost:
             if self.cardsInHand[resource] == 0:
@@ -224,7 +225,7 @@ class Player(object):
                     vertex.canBeSettled = False
                 townCostDict = dict(zip(townCost, [1,1,1,1]))
                 self.discard_cards(townCostDict, resourceDecks)
-                settlement.draw_settlement(screen)
+                settlement.draw_settlement(surface)
                 if settlement.vertex.port != None:
                     for rsc in settlement.vertex.port.resources:
                         if self.tradeRatios[rsc] > settlement.vertex.port.rate:
@@ -232,7 +233,7 @@ class Player(object):
                 return (0, "Success!")
         return (1, "Failed to build the town for an unknown reason.")
     
-    def build_city(self, vertexToUpgrade, resourceDecks, screen):
+    def build_city(self, vertexToUpgrade, resourceDecks, surface):
         if self.cardsInHand[grain] < 2 or self.cardsInHand[ore] < 3:
             return (2, "{} does not have enough resources to upgrade a settlement".format(self.name))
         if 2 not in [s.scale for s in self.unbuiltSettlements]:
@@ -250,11 +251,11 @@ class Player(object):
                 vertexToUpgrade.settlement = settlement
                 settlement.vertex = vertexToUpgrade
                 self.discard_cards({grain:2, ore:3}, resourceDecks)
-                settlement.draw_settlement(screen)
+                settlement.draw_settlement(surface)
                 return (0, "Success!")
         return (1, "Failed to upgrade the settlement for an unknown reason")
     
-    def build_road(self, vertex1, vertex2, longestRoad, resourceDecks, screen):
+    def build_road(self, vertex1, vertex2, longestRoad, resourceDecks, surface):
         if self.unbuiltRoads == []:
             return (2, "{} does not have any roads to build".format(self.name))
         if self.cardsInHand[lumber] == 0 or self.cardsInHand[clay] == 0 or self.unbuiltRoads == []:
@@ -287,25 +288,25 @@ class Player(object):
         vertex2.roads.append(newRoad)
         self.discard_cards({lumber:1, clay:1}, resourceDecks)
         longestRoad.determine_owner()
-        newRoad.draw_road(screen)
+        newRoad.draw_road(surface)
         return (0, "Success!")
     
     def buy_development_card(self, developmentDeck, resourceDecks):
         if ore not in self.cardsInHand or grain not in self.cardsInHand or wool not in self.cardsInHand:
             return (1, "{} does not have enough resources to buy a Development Card.".format(self.name))
-        newCard = developmentDeck.draw()
-        if newCard == "Empty":
-            return (2, "There are no Development Cards left.")
+        if len(developmentDeck) == 0:
+            return (2, "The deck of Development Cards is empty.")
+        newCard = developmentDeck.popleft()
         self.developmentCards.append(newCard)
         self.discard_cards({ore: 1, grain: 1, wool: 1}, resourceDecks)
         return (0, "Success! {} bought a {}.".format(self.name, newCard))
 
-    def play_knight(self, robber, newHex, playerToRob, largestArmy, screen):
+    def play_knight(self, robber, newHex, playerToRob, largestArmy, surface):
         if "Knight" in self.developmentCards:
             self.armySize += 1
             self.developmentCards.remove("Knight")
             largestArmy.determine_owner()
-            return (0, "Success! " + robber.play(screen, newHex, self, playerToRob))
+            return (0, "Success! " + robber.play(surface, newHex, self, playerToRob))
         else:
             return (1, "{} does not have any Knights to play.".format(self.name))
                 
@@ -470,42 +471,22 @@ class Longest_Road(object):
         return max([roadLength] + newLengths)
 
 
-# The deck of undrawn development cards
-# Has the shuffled list of cards
-# Function for drawing a card from the deck
-class Card_Deck(object):
-    def __init__(self, cardList):
-        self.cardList = cardList
-        # For development cards, should be: ["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] * 5
-        # For resources cards, should be 19 of each resource
-        random.shuffle(self.cardList)
-    
-    def draw(self):
-        if len(cardList) > 0:
-            card = cardList[0]
-            if len(cardList) > 0:
-                cardList = cardList[1:]
-            return card
-        else:
-            return "Empty"
-
-
 class Player_Key(object):
-    def __init__(self, keyFont, hexEdgeLength, playerList):
+    def __init__(self, keyFont, playerList):
         self.background = (255,255,255)
         self.box = pygame.Rect(int(round(hexEdgeLength/2)), int(round(hexEdgeLength/2)), 120, 120)
         self.keyFont = keyFont
         self.title = self.keyFont.render("Player Key", 1, (0,0,0))
         self.titleCoordinates = (int(round(hexEdgeLength/2)) + 5, int(round(hexEdgeLength/2)))
-        defaultColorBox = pygame.Rect(int(round(hexEdgeLength/2)) + 5, int(round(hexEdgeLength/2)) + 25, 12, 12)
+        defaultColorBox = pygame.Rect(int(round(hexEdgeLength/2)) + 5, int(round(hexEdgeLength/2)) + 25, colorBoxEdgeLength, colorBoxEdgeLength)
         self.colorBoxes = [defaultColorBox.move(0, i * 25) for i in range(4)]
         self.playerColors = [p.color for p in playerList]
         self.playerLabels = [self.keyFont.render(p.name, 1, (0,0,0)) for p in playerList]
         self.playerLabelCoordinates = [(int(round(hexEdgeLength/2)) + 27, int(round(hexEdgeLength/2)) + 22 + (i * 25)) for i in range(4)]
 
-    def draw(self, screen):
-        pygame.draw.rect(screen, self.background, self.box, 0)
-        screen.blit(self.title, self.titleCoordinates)
+    def draw(self, surface):
+        pygame.draw.rect(surface, self.background, self.box, 0)
+        surface.blit(self.title, self.titleCoordinates)
         for i in range(4):
-            pygame.draw.rect(screen, self.playerColors[i], self.colorBoxes[i], 0)
-            screen.blit(self.playerLabels[i], self.playerLabelCoordinates[i])
+            pygame.draw.rect(surface, self.playerColors[i], self.colorBoxes[i], 0)
+            surface.blit(self.playerLabels[i], self.playerLabelCoordinates[i])

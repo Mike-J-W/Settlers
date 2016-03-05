@@ -10,42 +10,9 @@ from constants import * #TODO holds all the game constants e.g. colors, menu_dic
 
 
 def main():
-    # Initialize all the game pieces
 
-    random.shuffle(resourcesForHexes) # Shuffle the list of hex resources
-    random.shuffle(developmentDeck)   # Shuffle the deck of Development Cards
-
-    # Making the odds tiles placed on top of the he7]]
-    oddsOrdered = [0] * 19    # A list to hold the odds tiles placed in random order
-    # Loop through the odds to place each in oddsOrdered
-    for o in odds:
-        oddPlaced = False   # A flag to determine if a place was found for the odd
-        # Keep trying to place the odd until successful
-        while not oddPlaced:
-            newIndex = random.choice(indices)   # Pick an index from those still available
-            goodIndex = True                    # Start by assuming the index is valid
-            # If the odd is 6 or 8, check that it would not be placed on a hex adjacent to another 6 or 8
-            if o == 6 or o == 8:
-                # Look at the hexes adjacent to the hex of the currently chosen index
-                for i in adjacents[newIndex]:
-                    # Check if that hex has a 6 or 8
-                    if oddsOrdered[i] == 6 or oddsOrdered[i] == 8:
-                        # If so, don't use that index
-                        goodIndex = False
-                        break
-            # If the index is valid, assign the odd to that index in the ordered odds list and remove the index from the list as seen by later iterations of the loop
-            if goodIndex:
-                oddsOrdered[newIndex] = o
-                indices.remove(newIndex)
-                oddPlaced = True
-    # Get the index of the 0-odd tile and insert "Desert" at that index in the resources list
-    desertIndex = oddsOrdered.index(0)
-    resourcesForHexes.insert(desertIndex, "Desert")
-
-    # The centers of the hexes adjusted for the length of their sides
-    hexCenters = [(int(2 * hexEdgeLength + baseHexCenters[i][0] * hexRadius), int((baseHexCenters[i][1] + 2) * hexEdgeLength)) for i in range(len(baseHexCenters))]
     # A list of the hexes, assigned a resource and a numbered tile using the lists above
-    hexes = [Hex(resourcesForHexes[x], oddsOrdered[x], resourceToColor[resourcesForHexes[x]], hexCenters[x], hexEdgeLength) for x in range(19)]
+    hexes = [Hex(resourcesForHexes[x], oddsOrdered[x], resourceToColor[resourcesForHexes[x]], hexCenters[x]) for x in range(19)]
     # Iterate over the hexes and create Vertex objects using the coordinates of their vertices
     vertices = []
     vertexCoordsSeen = []
@@ -127,10 +94,12 @@ def main():
     vertices[50].port = ports[0]
     vertices[51].port = ports[0]
     ports[0].vertices = [vertices[50], vertices[51]]
-    
+
 
     # Create the Robber
-    robber = Robber(hexes[desertIndex], robberRadius)
+    robber = Robber(hexes[desertIndex])
+
+
 
     # Instantiate the players
     # The game expects 4 players and a name, a color, and an AI status (True or False) for each
@@ -152,16 +121,16 @@ def main():
     if sys.argv[3] in trueOpts:
         p1AI = True
     # Instantiate a player with their name, color, AI status, and the sizes of their pieces
-    player1 = Player(sys.argv[1], playerColors[sys.argv[2]], p1AI, settlementEdgeLength, roadWidth)
+    player1 = Player(sys.argv[1], playerColors[sys.argv[2]], p1AI)
     if sys.argv[6] in trueOpts:
         p2AI = True
-    player2 = Player(sys.argv[4], playerColors[sys.argv[5]], p2AI, settlementEdgeLength, roadWidth)
+    player2 = Player(sys.argv[4], playerColors[sys.argv[5]], p2AI)
     if sys.argv[9] in trueOpts:
         p3AI = True
-    player3 = Player(sys.argv[7], playerColors[sys.argv[8]], p3AI, settlementEdgeLength, roadWidth)
+    player3 = Player(sys.argv[7], playerColors[sys.argv[8]], p3AI)
     if sys.argv[12] in trueOpts:
         p4AI = True
-    player4 = Player(sys.argv[10], playerColors[sys.argv[11]], p4AI, settlementEdgeLength, roadWidth)
+    player4 = Player(sys.argv[10], playerColors[sys.argv[11]], p4AI)
     # Construct a list of the players
     playerList = [player1, player2, player3, player4]
     # Give the players enough cards to build their first settlements and roads
@@ -184,7 +153,12 @@ def main():
     pygame.event.set_allowed(None)
     pygame.event.set_allowed([pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN, pygame.QUIT])
     # Create the Player Key
-    playerKey = Player_Key(keyFont, hexEdgeLength, playerList)
+    playerKey = Player_Key(keyFont, playerList)
+    boardSurface = screen.subsurface((0,0), oceanSize)
+    menuSurface = screen.subsurface((oceanWidth,0), (gameMenuWidth,oceanHeight))
+    menuSurface.fill(white)
+    logSurface = screen.subsurface((oceanWidth + gameMenuWidth + 1, 0), (gameEventLogWidth - 1, oceanHeight))
+    logSurface.fill(white)
 
     # The pygame loop
     boardDrawn = False                  # A flag to track if the board has been drawn
@@ -194,12 +168,12 @@ def main():
         # Draw the key, hexes, odds tiles, and Robber
         if not boardDrawn:
             # Set the background color
-            screen.fill(oceanBlue)
+            boardSurface.fill(oceanBlue)
             # Draw the player key
-            playerKey.draw(screen)
+            playerKey.draw(boardSurface)
             # Loop through the hexes, so that they can be drawn
             for hex in hexes:
-                pygame.draw.polygon(screen, hex.color, hex.vertexCoordinates, 0)    # Draw the hex
+                pygame.draw.polygon(boardSurface, hex.color, hex.vertexCoordinates, 0)    # Draw the hex
                 # Check that the hex is not the desert hex
                 if hex.resource != desert:
                     resourceOdds = str(hex.odds)    # Record the hex's odds tile
@@ -208,23 +182,23 @@ def main():
                         label = myfont.render(resourceOdds, 1, red)
                     else:
                         label = myfont.render(resourceOdds, 1, black)
-                    screen.blit(label, (hex.coordinates))   # Place the number on the screen
+                    boardSurface.blit(label, (hex.coordinates))   # Place the number on the screen
             # Draw the Robber
-            robber.draw_robber(screen)
+            robber.draw_robber(boardSurface)
             # Draw the ports, colored according to their resource
             for port in ports:
                 portColor = (0,0,0)
                 if port.resources != resourceTypes:
                     portColor = resourceToColor[port.resources[0]]
-                port.draw_port(screen, portColor)
+                port.draw_port(boardSurface, portColor)
             # Draw any existing player objects
             for player in playerList:
                 if player.builtRoads != []:
                     for road in player.builtRoads:
-                        road.draw_road(screen)
+                        road.draw_road(boardSurface)
                 if player.builtSettlements != []:
                     for settlement in player.builtSettlements:
-                        settlement.draw_settlement(screen)
+                        settlement.draw_settlement(boardSurface)
             pygame.display.flip()   # Update the whole screen in order to show the newly drawn board
             boardDrawn = True       # Record that the board has been drawn
 
@@ -237,7 +211,7 @@ def main():
                 print("")               # Give a line break
                 while not validAction:
                     print("For the settlement:")
-                    buildResult = build_settlement(player, vertices, resourceDecks, screen, playerKey)
+                    buildResult = build_settlement(player, vertices, resourceDecks, boardSurface, playerKey)
                     if buildResult[0] == 0:
                         validAction = True
                         pygame.display.update()
@@ -245,7 +219,7 @@ def main():
                 # Repeat until the player successfully builds a road
                 while not validAction:
                     print("For the road from that settlement:")
-                    buildResult = build_road(player, vertices, longestRoad, resourceDecks, screen, playerKey)
+                    buildResult = build_road(player, vertices, longestRoad, resourceDecks, boardSurface, playerKey)
                     if buildResult[0] == 0:
                         validAction = True
                         pygame.display.update()
@@ -281,7 +255,7 @@ def main():
                         robberPlay = get_robber_play_from_player(player, robber, hexes, playerKey) # Ask the player how they'd like to play the Robber
                         if robberPlay[0] == 0:
                             playChosen = True
-                    robberResult = robber.play(screen, robberPlay[1], player, robberPlay[2])    # Attempt to make that play
+                    robberResult = robber.play(boardSurface, robberPlay[1], player, robberPlay[2])    # Attempt to make that play
                     pygame.display.update() # Update the screen to show the new location of the Robber
                     print(robberResult) # Print the result of the player stealing from someone
                 else:
@@ -305,7 +279,7 @@ def main():
                 if gameOver:
                     break
 
-            screen.fill(black)
+            boardSurface.fill(black)
             pygame.display.update()
             boardDrawn = False
 
@@ -317,7 +291,7 @@ def main():
 
 
 # A function to take the player's input and build a road
-def build_road(player, vertexList, longestRoad, resourceDecks, screen, playerKey):
+def build_road(player, vertexList, longestRoad, resourceDecks, surface, playerKey):
     successfulBuild = False
     while not successfulBuild:
         print("Pick the first vertex.")
@@ -328,7 +302,7 @@ def build_road(player, vertexList, longestRoad, resourceDecks, screen, playerKey
         vertex2 = get_vertex_from_player(player, vertex1.adjacentVertices, playerKey)
         if vertex2 == None:
             return (1, "No vertex picked. Returning")
-        result = player.build_road(vertex1, vertex2, longestRoad, resourceDecks, screen)
+        result = player.build_road(vertex1, vertex2, longestRoad, resourceDecks, surface)
         print(result[1])
         if result[0] == 0:
             successfulBuild = True
@@ -336,14 +310,14 @@ def build_road(player, vertexList, longestRoad, resourceDecks, screen, playerKey
     return (0, "Road built!")
 
 # A function to take the player's input and build a settlement
-def build_settlement(player, vertexList, resourceDecks, screen, playerKey):
+def build_settlement(player, vertexList, resourceDecks, surface, playerKey):
     successfulBuild = False
     while not successfulBuild:
         print("{}, pick the vertex desired for the settlement.".format(player.name))
         vertexToSettle = get_vertex_from_player(player, vertexList, playerKey)
         if vertexToSettle == None:
             return (1, "No vertex selected. Returning.")
-        result = player.build_town(vertexToSettle, resourceDecks, screen)
+        result = player.build_town(vertexToSettle, resourceDecks, surface)
         print(result[1])
         if result[0] == 0:
             successfulBuild = True
@@ -352,14 +326,14 @@ def build_settlement(player, vertexList, resourceDecks, screen, playerKey):
 
 
 # A function to take the player's input and upgrade a settlement
-def upgrade_settlement(player, vertexList, resourceDecks, screen, playerKey):
+def upgrade_settlement(player, vertexList, resourceDecks, surface, playerKey):
     successfulUpgrade = False
     while not successfulUpgrade:
         print("{}, pick the town you wish to upgrade.".format(player.name))
         vertexToUpgrade = get_vertex_from_player(player, vertexList, playerKey)
         if vertexToUpgrade == None:
             return(1, "No vertex selected. Returning.")
-        result = player.build_city(vertexToUpgrade, resourceDecks, screen)
+        result = player.build_city(vertexToUpgrade, resourceDecks, surface)
         print(result[1])
         if result[0] == 0:
             successfulUpgrade = True
@@ -369,7 +343,6 @@ def upgrade_settlement(player, vertexList, resourceDecks, screen, playerKey):
 # A function to buy a devlopment card for a player
 def buy_development_card(player, resourceDecks, developmentDeck):
     buyResult = player.buy_development_card(developmentDeck, resourceDecks)
-    print(buyResult[1])
     return buyResult
 
 # A function to take the player's input and play a monopoly card
@@ -381,7 +354,6 @@ def play_monopoly_card(player, playerList):
     if choice == "Cancel":
         return (2, "{} cancelled the play. Returning.")
     monopolyResult = player.play_monopoly(playerList, choice)
-    print(monopolyResult[1])
     return monopolyResult
 
 # A function to take the player's input and play a year of plenty card
@@ -484,7 +456,6 @@ def get_cards_to_discard_from_player(player, resourceTypes):
             else:
                 correctNumberChosen = True
         return cardsToDiscard
-
 
 # A function to get the new hex for the Robber and the player from whom the player wants to steal
 # Takes the player moving the Robber, the Robber, and the list of hexes
@@ -682,17 +653,20 @@ def roll_dice(player):
 
 # Function that deals with the choice to play the knight first
 # Takes the player in question
-def play_knight(player,robber,hexes,largestArmy, screen, playerKey):
+def play_knight(player,robber,hexes,largestArmy, surface, playerKey):
     player.developmentCards.append("Knight")
     robberPlay = get_robber_play_from_player(player, robber, hexes, playerKey) # Ask the player how they'd like to use the Robber
     if robberPlay[0] == 1:
         return (1, "{} chose not to play the Knight.".format(player.name))
-    knightResult = player.play_knight(robber, robberPlay[1], robberPlay[2], largestArmy, screen)    # Attempt to make that play
+    knightResult = player.play_knight(robber, robberPlay[1], robberPlay[2], largestArmy, surface)    # Attempt to make that play
     pygame.display.update()
     print(knightResult[1])
     print()
     return knightResult
 
+
+def draw_player_hand(player, menuSurface):
+    pass
 
 
 if __name__ == "__main__":

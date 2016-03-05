@@ -1,5 +1,6 @@
 import math
-from pieces import *
+import random
+import collections
 ## Player Colors
 
 forestGreen = (34, 139, 34)
@@ -24,11 +25,11 @@ playerColors = {"red": playerRed, "blue": playerBlue, "green": playerGreen, "pur
 
 
 # The menus dictionary
-preHarvestMenu = dict(zip(["Harvest your resources (AKA roll the dice)", "Play a Knight (if possible) and then harvest resources"], ["roll_dice(player)", "play_knight(player,robber,hexes,largestArmy,screen,playerKey)"]))
+preHarvestMenu = dict(zip(["Harvest your resources (AKA roll the dice)", "Play a Knight (if possible) and then harvest resources"], ["roll_dice(player)", "play_knight(player,robber,hexes,largestArmy,boardSurface,playerKey)"]))
 postHarvestMenu = dict(zip(["Build a road", "Build a settlement", "Upgrade a settlement", "Buy a development card", "Play a knight",
                             "Play a monopoly card", "Play a year of plenty card", "Play a road building card", "Make a maritime trade", "Offer a trade to players", "End turn"],
-                           ["build_road(player, vertices, longestRoad, resourceDecks, screen, playerKey)", "build_settlement(player, vertices, resourceDecks, screen, playerKey)", "upgrade_settlement(player, vertices, resourceDecks, screen, playerKey)",
-                            "buy_card()", "play_knight()", "play_monopoly()", "play_yop_card(player, resourceDecks)", "play_road_building()", "maritime_trade()", "offer_trade()", "end_turn(player)"]))
+                           ["build_road(player, vertices, longestRoad, resourceDecks, boardSurface, playerKey)", "build_settlement(player, vertices, resourceDecks, boardSurface, playerKey)", "upgrade_settlement(player, vertices, resourceDecks, boardSurface, playerKey)",
+                            "buy_development_card(player, resourceDecks, developmentDeck)", "play_knight()", "play_monopoly()", "play_yop_card(player, resourceDecks)", "play_road_building()", "maritime_trade()", "offer_trade()", "end_turn(player)"]))
 
 
 # Set the piece and image sizes
@@ -37,7 +38,13 @@ hexRadius = int(round(hexEdgeLength * math.sqrt(3) / 2.0))              # The di
 settlementEdgeLength = int(round(hexEdgeLength / 4))                    # The width of a town
 roadWidth = int(round(settlementEdgeLength / 3))                        # The width of a road
 robberRadius = int(settlementEdgeLength)                                # The radius of the circle denoting the Robber
-screenSize = (hexRadius * 10 + hexEdgeLength * 4, hexEdgeLength * 12)   # The size of the window that is opened
+colorBoxEdgeLength = 12
+oceanWidth = hexRadius * 10 + hexEdgeLength * 4
+oceanHeight = hexEdgeLength * 12
+oceanSize = (oceanWidth, oceanHeight)
+gameMenuWidth = 240
+gameEventLogWidth = 240
+screenSize = (oceanWidth + gameEventLogWidth + gameMenuWidth, oceanHeight)   # The size of the window that is opened
 
 
 # The resource and card variables
@@ -49,9 +56,12 @@ ore = "Ore"
 desert = "Desert"
 resourceTypes = [lumber, grain, wool, clay, ore]    # A list of the resources in the game
 resourceToColor = {lumber: forestGreen, grain: wheatYellow, wool: woolGreen, clay: clayColor, ore: rockGray, desert: sandyDesert}    # A dictionary relating resouces to colors
-developmentDeck = Card_Deck(["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] * 5)    # A list with one element per development card
+developmentDeckList = ["Knight"] * 14 + ["Monopoly", "Year of Plenty", "Road Building"] * 2 + ["Victory Point"] * 5    # A list with one element per development card
+random.shuffle(developmentDeckList)
+developmentDeck = collections.deque(developmentDeckList)
 resourceDecks = {lumber: 19, grain: 19, wool: 19, clay: 19, ore: 19}    # A dictionary to hold the decks of resources, keyed to their resource name
 resourcesForHexes = [lumber] * 4 + [grain] * 4 + [wool] * 4 + [clay] * 3 + [ore] * 3    # A list representing the number of hexes per resource
+random.shuffle(resourcesForHexes)
 
 # Making the odds tiles placed on top of the hexes
 odds = [6,6,8,8,2,3,3,4,4,5,5,9,9,10,10,11,11,12]   # A list of the numbered, circular tiles denoting times of harvest
@@ -62,3 +72,34 @@ adjacents = [[1,3,4],[0,2,4,5],[1,5,6],[0,4,7,8],[0,1,3,5,8,9],[1,2,4,6,9,10],[2
 
 # The unadjusted coordinates of the centers of the hexes
 baseHexCenters = [(3,1),(5,1),(7,1),(2,2.5),(4,2.5),(6,2.5),(8,2.5),(1,4),(3,4),(5,4),(7,4),(9,4),(2,5.5),(4,5.5),(6,5.5),(8,5.5),(3,7),(5,7),(7,7)]
+# The centers of the hexes adjusted for the length of their sides
+hexCenters = [(int(2 * hexEdgeLength + baseHexCenters[i][0] * hexRadius), int((baseHexCenters[i][1] + 2) * hexEdgeLength)) for i in range(len(baseHexCenters))]
+
+
+# Making the odds tiles placed on top of the hexes
+oddsOrdered = [0] * 19    # A list to hold the odds tiles placed in random order
+# Loop through the odds to place each in oddsOrdered
+for o in odds:
+    oddPlaced = False   # A flag to determine if a place was found for the odd
+    # Keep trying to place the odd until successful
+    while not oddPlaced:
+        newIndex = random.choice(indices)   # Pick an index from those still available
+        goodIndex = True                    # Start by assuming the index is valid
+        # If the odd is 6 or 8, check that it would not be placed on a hex adjacent to another 6 or 8
+        if o == 6 or o == 8:
+            # Look at the hexes adjacent to the hex of the currently chosen index
+            for i in adjacents[newIndex]:
+                # Check if that hex has a 6 or 8
+                if oddsOrdered[i] == 6 or oddsOrdered[i] == 8:
+                    # If so, don't use that index
+                    goodIndex = False
+                    break
+        # If the index is valid, assign the odd to that index in the ordered odds list and remove the index from the list as seen by later iterations of the loop
+        if goodIndex:
+            oddsOrdered[newIndex] = o
+            indices.remove(newIndex)
+            oddPlaced = True
+# Get the index of the 0-odd tile and insert "Desert" at that index in the resources list
+desertIndex = oddsOrdered.index(0)
+resourcesForHexes.insert(desertIndex, "Desert")
+
