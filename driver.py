@@ -236,7 +236,7 @@ def main():
                 pygame.display.update(playerHandSurface.get_rect())
 
                 # Initiate the pre-harvest menu
-                actionChoice = present_menu(player, preHarvestMenu)
+                actionChoice = present_menu(player, preHarvestMenu, menuSurface, comicsansLargeFont, arialSmallFont)
                 result = eval(actionChoice)
                 if not isinstance(result, int):
                     result = roll_dice(player)
@@ -275,7 +275,9 @@ def main():
                 while not turnOver:
                     draw_player_hand(player, playerHandSurface, comicsansLargeFont, arialSmallFont)
                     pygame.display.update(playerHandSurface.get_rect())
-                    actionChoice2 = present_menu(player, postHarvestMenu)
+#                    present_graphical_menu(player, postHarvestMenu, menuSurface, comicsansLargeFont, arialSmallFont)
+#                    pygame.display.update(menuSurface.get_rect())
+                    actionChoice2 = present_menu(player, postHarvestMenu, menuSurface, comicsansLargeFont, arialSmallFont)
                     result = eval(actionChoice2)
                     print(result[1])
                     if result[1] == "Turn is over.":
@@ -622,10 +624,15 @@ def get_vertex_from_player(player, vertexList, playerKey):
                     print("The mouse moved while pressed down. Please try again.")
         return closestVertex
 
-def present_menu(player, menuDict):
+def present_menu(player, menuDict, surface, titleFont, infoFont):
     if player.isAI == True:
         pass
     else:
+        chosenOpt = present_graphical_menu(player, menuDict, surface, titleFont, infoFont)
+        choice = menuDict[chosenOpt]
+        surface.fill(white)
+        pygame.display.update(surface.get_rect())
+        '''
         print("The available options are:")
         menuOpts = sorted(list(menuDict.keys()))
         for i, e in enumerate(menuOpts):
@@ -646,7 +653,55 @@ def present_menu(player, menuDict):
                 continue
             choice = menuDict[optKey]
             validOptionFound = True
+        '''
         return choice
+
+def present_graphical_menu(player, menuDict, surface, titleFont, infoFont):
+    surfaceWidth = surface.get_width()
+    titleLabel = titleFont.render("Action Choices", 1, black)
+    surface.blit(titleLabel, (25, 7))
+    menuOpts = sorted(list(menuDict.keys()))
+    menuOptSurfaces = [surface.subsurface(pygame.Rect((0,47 + i*25),(surfaceWidth,25))) for i in range(len(menuOpts))]
+    for i, optSurface in enumerate(menuOptSurfaces):
+        optLabel = infoFont.render(menuOpts[i], 1, black)
+        optSurface.blit(optLabel, (10, 2))
+    pygame.display.update(surface.get_rect())
+    rectList = [pygame.Rect(oS.get_abs_offset(), (oS.get_rect().width, oS.get_rect().height)) for oS in menuOptSurfaces]
+    chosenRect = get_rect_from_player(player, rectList)
+    chosenOpt = menuOpts[rectList.index(chosenRect)]
+    return chosenOpt
+
+
+def get_rect_from_player(player, rectList):
+    # Loop until the user clicks on a vertex
+    validClick = False
+    while not validClick:
+        # Make sure no other events are on the queue
+        pygame.event.clear()
+        # Prompt the user for a click and wait for two events
+        print("{} please click a option.".format(player.name))
+        chosenRect = None
+        eventA = pygame.event.wait()
+        eventB = pygame.event.wait()
+        # If the next two events are the mouse being pressed down and then released, move forward
+        if eventA.type == pygame.MOUSEBUTTONDOWN and eventB.type == pygame.MOUSEBUTTONUP:
+            posA = eventA.__dict__['pos']
+            posB = eventB.__dict__['pos']
+            # If the mouse actions (pressed down, released) were no more than 10 pixels apart, move forward
+            if gf.pp_distance(posA, posB) < 10:
+                # Loop through the rects to see if the click ocurred inside one
+                for rect in rectList:
+                    # If both mouse actions ocurred inside the current hex, move forward
+                    if gf.is_within_rect(rect, posA) and gf.is_within_rect(rect, posB):
+                        # Record the rect, switch the boolean to end the while loop, and break the rect loop
+                        chosenRect = rect
+                        validClick = True
+                        break
+                if validClick == False:
+                    print("That click was not inside a rect. Please try again.")
+            else:
+                print("The mouse moved while pressed down. Please try again.")
+    return chosenRect
 
 # Function that simply rolls the dice and returns the result
 def roll_dice(player):
