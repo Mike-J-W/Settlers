@@ -260,7 +260,7 @@ def main():
                 pygame.display.update(playerHandSurface.get_rect())
 
                 # Initiate the pre-harvest menu
-                actionChoice = present_menu(player, c.preHarvestMenu, menuSurface, comicsansLargeFont, arialSmallFont)
+                actionChoice = present_menu(player, c.preHarvestMenu, "Pre-Harvest", menuSurface, comicsansLargeFont, arialSmallFont)
                 result = eval(actionChoice)
                 if not isinstance(result, int):
                     result = roll_dice(player)
@@ -271,14 +271,8 @@ def main():
                     # Discard cards for players with more than 7
                     for playerToCheck in playerList:
                         if sum(playerToCheck.cardsInHand.values()) > 7:
-                            validAction = False
-                            while not validAction:
-                                discardDict = get_cards_to_discard_from_player(playerToCheck, c.resourceTypes)
-                                discardResult = playerToCheck.discard_cards(discardDict, resourceDecks)
-                                if discardResult[0] != 0:
-                                    print(discardResult[1] + " Please try again.")
-                                else:
-                                    validAction = True
+                            halve_player_hand(playerToCheck, resourceDecks, playerHandSurface, menuSurface,
+                                              comicsansLargeFont, arialSmallFont)
                     playChosen = False
                     while not playChosen:
                         # Ask the player how they'd like to play the Robber
@@ -305,7 +299,7 @@ def main():
                     pygame.display.update(playerHandSurface.get_rect())
 #                    present_graphical_menu(player, postHarvestMenu, menuSurface, comicsansLargeFont, arialSmallFont)
 #                    pygame.display.update(menuSurface.get_rect())
-                    actionChoice2 = present_menu(player, c.postHarvestMenu, menuSurface, comicsansLargeFont,
+                    actionChoice2 = present_menu(player, c.postHarvestMenu, "Post-Harvest", menuSurface, comicsansLargeFont,
                                                  arialSmallFont)
                     result = eval(actionChoice2)
                     print(result[1])
@@ -327,6 +321,23 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
+
+
+def halve_player_hand(player, resourceDecks, handSurface, menuSurface, titleFont, infoFont):
+    draw_player_hand(player, handSurface, titleFont, infoFont)
+    pygame.display.update(handSurface.get_rect())
+    numToDiscard = int(round(sum(player.cardsInHand.values()) / 2, -0))
+    while numToDiscard > 0:
+        resourcesInHand = sorted([resource for resource in player.cardsInHand.keys()
+                                  if player.cardsInHand[resource] > 0])
+        resourceMenu = dict(zip(resourcesInHand, resourcesInHand))
+        cardToDiscard = present_menu(player, resourceMenu, "Discard {}".format(numToDiscard), menuSurface, titleFont,
+                                     infoFont)
+        player.discard_cards({cardToDiscard: 1}, resourceDecks)
+        draw_player_hand(player, handSurface, titleFont, infoFont)
+        pygame.display.update(handSurface.get_rect())
+        numToDiscard -= 1
+    return (0, "{} successfully discarded cards.".format(player.name))
 
 
 # A function to take the player's input and build a road
@@ -473,40 +484,6 @@ def end_turn(player):
     # Clear the screen
     os.system('cls' if os.name == 'nt' else 'clear')
     return (0, "Turn is over.", pointTotal)
-
-
-def get_cards_to_discard_from_player(player, resourceTypes):
-    if player.isAI:
-        pass
-    else:
-        handSize = sum(player.cardsInHand.values())
-        numberToDiscard = int(round(handSize / 2, -0))
-        correctNumberChosen = False
-        cardsToDiscard = dict(zip(resourceTypes, [0, 0, 0, 0, 0]))
-        while not correctNumberChosen:
-            print("{}, you have {} cards and must discard {}.".format(player.name, handSize, numberToDiscard))
-            print("Your cards are: {}".format(player.cardsInHand))
-            for resource in resourceTypes:
-                if player.cardsInHand[resource] != 0:
-                    validInput = False
-                    while not validInput:
-                        resourceInput = input("You have {} {} cards. How many will you dicard? ".format(
-                            player.cardsInHand[resource], resource))
-                        try:
-                            resourceCount = int(resourceInput)
-                            if 0 <= resourceCount <= player.cardsInHand[resource]:
-                                cardsToDiscard[resource] = resourceCount
-                                validInput = True
-                            else:
-                                print("Not within the valid range.")
-                        except ValueError:
-                            print("That was not an integer.")
-            if sum(cardsToDiscard.values()) > numberToDiscard or sum(cardsToDiscard.values()) < numberToDiscard:
-                print ("Incorrect number of cards chosen.")
-                cardsToDiscard = dict(zip(resourceTypes, [0, 0, 0, 0, 0]))
-            else:
-                correctNumberChosen = True
-        return cardsToDiscard
 
 
 # A function to get the new hex for the Robber and the player from whom the player wants to steal
@@ -677,11 +654,11 @@ def get_vertex_from_player(player, vertexList, playerKey):
         return closestVertex
 
 
-def present_menu(player, menuDict, surface, titleFont, infoFont):
+def present_menu(player, menuDict, titleContent, surface, titleFont, infoFont):
     if player.isAI:
         pass
     else:
-        chosenOpt = present_graphical_menu(player, menuDict, surface, titleFont, infoFont)
+        chosenOpt = present_graphical_menu(player, menuDict, titleContent, surface, titleFont, infoFont)
         choice = menuDict[chosenOpt]
         surface.fill(c.white)
         pygame.display.update(surface.get_rect())
@@ -710,9 +687,11 @@ def present_menu(player, menuDict, surface, titleFont, infoFont):
         return choice
 
 
-def present_graphical_menu(player, menuDict, surface, titleFont, infoFont):
+def present_graphical_menu(player, menuDict, titleContent, surface, titleFont, infoFont):
+    surface.fill(c.white)
+    pygame.display.update(surface.get_rect())
     surfaceWidth = surface.get_width()
-    titleLabel = titleFont.render("Action Choices", 1, c.black)
+    titleLabel = titleFont.render(titleContent, 1, c.black)
     surface.blit(titleLabel, (25, 7))
     menuOpts = sorted(list(menuDict.keys()))
     menuOptSurfaces = [surface.subsurface(pygame.Rect((0, 47 + i*25), (surfaceWidth, 25)))
