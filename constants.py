@@ -34,9 +34,12 @@ postHarvestMenu = dict(
         ["build_road(player, vertices, longestRoad, resourceDecks, boardSurface, playerKey)",
          "build_settlement(player, vertices, resourceDecks, boardSurface, playerKey)",
          "upgrade_settlement(player, vertices, resourceDecks, boardSurface, playerKey)",
-         "buy_development_card(player, resourceDecks, developmentDeck)", "play_knight()", "play_monopoly()",
-         "play_yop_card(player, resourceDecks)", "play_road_building()", "maritime_trade()", "offer_trade()",
-         "end_turn(player)"]))
+         "buy_development_card(player, resourceDecks, developmentDeck)", 
+         "play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey)", 
+         "play_monopoly(player, playerList, menuSurface, titleFont, infoFont)",
+         "play_yop_card(player, resourceDecks, menuSurface, titleFont, infoFont)", 
+         "play_road_building(player, vertexList, longestRoad, resourceDecks, boardSurface, playerKey)", 
+         "maritime_trade(player, maritimeTradeMenu, resourceDecks)", "offer_trade()", "end_turn(player)"]))
 
 # Set the piece and image sizes
 # The length of a side of a hex

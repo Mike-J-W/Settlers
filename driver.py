@@ -399,44 +399,59 @@ def buy_development_card(player, resourceDecks, developmentDeck):
 
 
 # A function to take the player's input and play a monopoly card
-def play_monopoly_card(player, playerList):
+def play_monopoly_card(player, playerList, surface, titleFont, infoFont):
     print("{}, which resource do you want to monopolize?".format(player.name))
     resourceMenu = dict(zip(c.resourceTypes, c.resourceTypes))
-    resourceMenu["Cancel"] = "Cancel"
-    choice = present_menu(player, dict(zip(c.resourceTypes, c.resourceTypes)))
-    if choice == "Cancel":
+    resourceMenu["Cancel and return to main menu"] = None
+    choice = present_menu(player, dict(zip(c.resourceTypes, c.resourceTypes)), "Take Which?", surface, titleFont, infoFont)
+    if choice is None:
         return (2, "{} cancelled the play. Returning.")
     monopolyResult = player.play_monopoly(playerList, choice)
     return monopolyResult
 
 
 # A function to take the player's input and play a year of plenty card
-def play_yop_card(player, resourceDecks):
+def play_yop_card(player, resourceDecks, surface, titleFont, infoFont):
     if "Year of Plenty" not in player.developmentCards:
         return (1, "{} does not have a Year of Plenty to play.".format(player.name))
     availableResources = [resource for resource in resourceDecks.keys() if resourceDecks[resource] > 0]
+    resourceMenu = dict(zip(availableResources, availableResources))
+    resourceMenu["Cancel and return to main menu"] = None
     print("{}, choose the first resource to draw.".format(player.name))
-    resource1 = present_menu(player, dict(zip(availableResources + ["Cancel and return to main menu"],
-                                              availableResources + [None])))
+    resource1 = present_menu(player, resourceMenu, "Draw Which?", surface, titleFont, infoFont)
     if resource1 is None:
         return (2, "{} chose to not play a Year of Plenty.".format(player.name))
     player.draw_cards({resource1: 1}, resourceDecks)
-    availableResources = [resource for resource in resourceDecks.keys() if resourceDecks[resource] > 0]
-    print("{}, choose the second resource to draw.".format(player.name))
-    resource2 = present_menu(player, dict(zip(availableResources, availableResources)))
-    player.draw_cards({resource2: 1}, resourceDecks)
     player.developmentCards.remove("Year of Plenty")
-    return (0, "{} has used Year of Plenty to draw {} and {}".format(player.name, resource1, resource2))
+    availableResources = [resource for resource in resourceDecks.keys() if resourceDecks[resource] > 0]
+    resourceMenu = dict(zip(availableResources, availableResources))
+    resourceMenu["Don't draw a 2nd card"] = None
+    print("{}, choose the second resource to draw.".format(player.name))
+    resource2 = present_menu(player, resourceMenu, "Draw Which?", surface, titleFont, infoFont)
+    if resource2 is None:
+        return (0, "{} used Year of Plenty to draw {}".format(player.name, resource1))
+    player.draw_cards({resource2: 1}, resourceDecks)
+    return (0, "{} used Year of Plenty to draw {} and {}".format(player.name, resource1, resource2))
 
 
 # A function to take the player's input and play a road building card
-def play_road_building():
-    pass
+def play_road_building(player, vertexList, longestRoad, resourceDecks, surface, playerKey):
+    if "Road Building" not in player.developmentCards:
+        return (1, "{} does not have a Road Building to play.".format(player.name))
+    buildResult = build_road(player, vertexList, longestRoad, resourceDecks, surface, playerKey)
+    if buildResult[0] == 1:
+        return (2, "{} chose not to use Road Building.".format(player.name))
+    player.draw_cards(c.roadCost, resourceDecks)
+    player.developmentCards.remove("Road Building")
+    buildResult = build_road(player, vertextList, longestRoad, resourceDecks, surface, playerKey)
+    if buildResult[0] == 1:
+        return (0, "{} built 1 road with Road Building.".format(player.name))
+    player.draw_cards(c.roadCost, resourceDecks)
+    return (0, "{} built 2 roads with Road Building.".format(player.name))
 
 
 # A function to take the player's input and make a maritime trade
 def maritime_trade(player, maritimeTradeMenu, resourceDecks):
-
     print("Please select the resource you would like to maritime trade: ")
     resourceTrading = present_menu(player, maritimeTradeMenu)
 
@@ -488,7 +503,7 @@ def end_turn(player):
 
 # A function to get the new hex for the Robber and the player from whom the player wants to steal
 # Takes the player moving the Robber, the Robber, and the list of hexes
-def get_robber_play_from_player(player, robber, hexes, playerKey):
+def get_robber_play_from_player(player, robber, hexes, playerKey, surface, titleFont, infoFont):
     # Check if the player is an AI or human
     if player.isAI:
         pass
@@ -514,11 +529,9 @@ def get_robber_play_from_player(player, robber, hexes, playerKey):
         # The default value for the player from whom the player will steal
         playerToRob = None
         # If the player has multiple players from whom they can steal, ask them to choose their target
-        if len(playersAvailableToRob) > 1:
+        if len(playersAvailableToRob) > 0:
             print("Choose the player from whom you wish to steal.")
-            playerToRob = get_player_from_player(player, playersAvailableToRob)
-        elif len(playersAvailableToRob) == 1:
-            playerToRob = playersAvailableToRob[0]
+            playerToRob = get_player_from_player(player, playersAvailableToRob, surface, titleFont, infoFont)
         # Return the hex to which the Robber will be moved and the player who will be robbed
         return (0, destinationHex, playerToRob)
 
@@ -542,23 +555,23 @@ def get_knight_choice_from_player(player):
 
 # A function to get the player's choice from among multiple players
 # Takes the player choosing and the list of players from which the player is choosing
-def get_player_from_player(player, playerList):
+def get_player_from_player(player, listOfPlayers, surface, titleFont, infoFont):
     # Check if the player is an AI or human
     if player.isAI:
         pass
     else:
         # Create a list of names
         playerNames = []
-        for plyr in playerList:
+        for plyr in listOfPlayers:
             if plyr is not None:
                 playerNames.append(plyr.name)
             else:
                 playerNames.append("Nobody")
         # Make a dictionary of the player names the player objects
-        playerMenu = dict(zip(playerNames, playerList))
+        playerMenu = dict(zip(playerNames, listOfPlayers))
         # Get the choice
         print("Please choose a player.")
-        chosenPlayer = present_menu(player, playerMenu)
+        chosenPlayer = present_menu(player, playerMenu, "Steal from:", surface, titleFont, infoFont)
         # Return the player object corresponding to the name entered by the player
         return chosenPlayer
 
