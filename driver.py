@@ -4,9 +4,9 @@ import time
 import sys
 import os
 import collections
-import geometricfunctions as gf
 import constants as c
 import pieces as p
+import userinput as ui
 
 
 def main():
@@ -260,7 +260,8 @@ def main():
                 pygame.display.update(playerHandSurface.get_rect())
 
                 # Initiate the pre-harvest menu
-                actionChoice = present_menu(player, c.preHarvestMenu, "Pre-Harvest", menuSurface, comicsansLargeFont, arialSmallFont)
+                actionChoice = ui.present_menu(player, c.preHarvestMenu, "Pre-Harvest", menuSurface, comicsansLargeFont,
+                                            arialSmallFont)
                 result = eval(actionChoice)
                 if not isinstance(result, int):
                     result = roll_dice(player)
@@ -273,18 +274,17 @@ def main():
                         if sum(playerToCheck.cardsInHand.values()) > 7:
                             halve_player_hand(playerToCheck, resourceDecks, playerHandSurface, menuSurface,
                                               comicsansLargeFont, arialSmallFont)
-                    playChosen = False
-                    while not playChosen:
-                        # Ask the player how they'd like to play the Robber
-                        robberPlay = get_robber_play_from_player(player, robber, hexes, playerKey)
+                    playMade = False
+                    while not playMade:
+                        # Have the player make a play with the Robber
+                        robberPlay = use_robber(player, robber, hexes, boardSurface, playerKey, menuSurface,
+                                                                 comicsansLargeFont, arialSmallFont)
                         if robberPlay[0] == 0:
-                            playChosen = True
-                    # Attempt to make that play
-                    robberResult = robber.play(boardSurface, robberPlay[1], player, robberPlay[2])
+                            playMade = True
                     # Update the screen to show the new location of the Robber
                     pygame.display.update()
                     # Print the result of the player stealing from someone
-                    print(robberResult)
+                    print(robberPlay[1])
                 else:
                     # Have the players draw their resource cards
                     for playerDrawing in playerList:
@@ -299,8 +299,8 @@ def main():
                     pygame.display.update(playerHandSurface.get_rect())
 #                    present_graphical_menu(player, postHarvestMenu, menuSurface, comicsansLargeFont, arialSmallFont)
 #                    pygame.display.update(menuSurface.get_rect())
-                    actionChoice2 = present_menu(player, c.postHarvestMenu, "Post-Harvest", menuSurface, comicsansLargeFont,
-                                                 arialSmallFont)
+                    actionChoice2 = ui.present_menu(player, c.postHarvestMenu, "Post-Harvest", menuSurface,
+                                                 comicsansLargeFont, arialSmallFont)
                     result = eval(actionChoice2)
                     print(result[1])
                     if result[1] == "Turn is over.":
@@ -331,7 +331,7 @@ def halve_player_hand(player, resourceDecks, handSurface, menuSurface, titleFont
         resourcesInHand = sorted([resource for resource in player.cardsInHand.keys()
                                   if player.cardsInHand[resource] > 0])
         resourceMenu = dict(zip(resourcesInHand, resourcesInHand))
-        cardToDiscard = present_menu(player, resourceMenu, "Discard {}".format(numToDiscard), menuSurface, titleFont,
+        cardToDiscard = ui.present_menu(player, resourceMenu, "Discard {}".format(numToDiscard), menuSurface, titleFont,
                                      infoFont)
         player.discard_cards({cardToDiscard: 1}, resourceDecks)
         draw_player_hand(player, handSurface, titleFont, infoFont)
@@ -345,11 +345,11 @@ def build_road(player, vertexList, longestRoad, resourceDecks, surface, playerKe
     successfulBuild = False
     while not successfulBuild:
         print("Pick the first vertex.")
-        vertex1 = get_vertex_from_player(player, vertexList, playerKey)
+        vertex1 = ui.get_vertex_from_player(player, vertexList, playerKey)
         if vertex1 is None:
             return (1, "No vertex picked. Returning.")
         print("Pick the second vertex.")
-        vertex2 = get_vertex_from_player(player, vertex1.adjacentVertices, playerKey)
+        vertex2 = ui.get_vertex_from_player(player, vertex1.adjacentVertices, playerKey)
         if vertex2 is None:
             return (1, "No vertex picked. Returning")
         result = player.build_road(vertex1, vertex2, longestRoad, resourceDecks, surface)
@@ -365,7 +365,7 @@ def build_settlement(player, vertexList, resourceDecks, surface, playerKey):
     successfulBuild = False
     while not successfulBuild:
         print("{}, pick the vertex desired for the settlement.".format(player.name))
-        vertexToSettle = get_vertex_from_player(player, vertexList, playerKey)
+        vertexToSettle = ui.get_vertex_from_player(player, vertexList, playerKey)
         if vertexToSettle is None:
             return (1, "No vertex selected. Returning.")
         result = player.build_town(vertexToSettle, resourceDecks, surface)
@@ -381,7 +381,7 @@ def upgrade_settlement(player, vertexList, resourceDecks, surface, playerKey):
     successfulUpgrade = False
     while not successfulUpgrade:
         print("{}, pick the town you wish to upgrade.".format(player.name))
-        vertexToUpgrade = get_vertex_from_player(player, vertexList, playerKey)
+        vertexToUpgrade = ui.get_vertex_from_player(player, vertexList, playerKey)
         if vertexToUpgrade is None:
             return(1, "No vertex selected. Returning.")
         result = player.build_city(vertexToUpgrade, resourceDecks, surface)
@@ -403,7 +403,8 @@ def play_monopoly_card(player, playerList, surface, titleFont, infoFont):
     print("{}, which resource do you want to monopolize?".format(player.name))
     resourceMenu = dict(zip(c.resourceTypes, c.resourceTypes))
     resourceMenu["Cancel and return to main menu"] = None
-    choice = present_menu(player, dict(zip(c.resourceTypes, c.resourceTypes)), "Take Which?", surface, titleFont, infoFont)
+    choice = ui.present_menu(player, dict(zip(c.resourceTypes, c.resourceTypes)), "Take Which?", surface, titleFont,
+                          infoFont)
     if choice is None:
         return (2, "{} cancelled the play. Returning.")
     monopolyResult = player.play_monopoly(playerList, choice)
@@ -418,7 +419,7 @@ def play_yop_card(player, resourceDecks, surface, titleFont, infoFont):
     resourceMenu = dict(zip(availableResources, availableResources))
     resourceMenu["Cancel and return to main menu"] = None
     print("{}, choose the first resource to draw.".format(player.name))
-    resource1 = present_menu(player, resourceMenu, "Draw Which?", surface, titleFont, infoFont)
+    resource1 = ui.present_menu(player, resourceMenu, "Draw Which?", surface, titleFont, infoFont)
     if resource1 is None:
         return (2, "{} chose to not play a Year of Plenty.".format(player.name))
     player.draw_cards({resource1: 1}, resourceDecks)
@@ -427,7 +428,7 @@ def play_yop_card(player, resourceDecks, surface, titleFont, infoFont):
     resourceMenu = dict(zip(availableResources, availableResources))
     resourceMenu["Don't draw a 2nd card"] = None
     print("{}, choose the second resource to draw.".format(player.name))
-    resource2 = present_menu(player, resourceMenu, "Draw Which?", surface, titleFont, infoFont)
+    resource2 = ui.present_menu(player, resourceMenu, "Draw Which?", surface, titleFont, infoFont)
     if resource2 is None:
         return (0, "{} used Year of Plenty to draw {}".format(player.name, resource1))
     player.draw_cards({resource2: 1}, resourceDecks)
@@ -443,7 +444,7 @@ def play_road_building(player, vertexList, longestRoad, resourceDecks, surface, 
         return (2, "{} chose not to use Road Building.".format(player.name))
     player.draw_cards(c.roadCost, resourceDecks)
     player.developmentCards.remove("Road Building")
-    buildResult = build_road(player, vertextList, longestRoad, resourceDecks, surface, playerKey)
+    buildResult = build_road(player, vertexList, longestRoad, resourceDecks, surface, playerKey)
     if buildResult[0] == 1:
         return (0, "{} built 1 road with Road Building.".format(player.name))
     player.draw_cards(c.roadCost, resourceDecks)
@@ -451,39 +452,38 @@ def play_road_building(player, vertexList, longestRoad, resourceDecks, surface, 
 
 
 # A function to take the player's input and make a maritime trade
-def maritime_trade(player, maritimeTradeMenu, resourceDecks):
+def maritime_trade(player, resourceDecks, surface, titleFont, infoFont):
+    tradeAwayMenu = {"Cancel and return to main menu": None}
+    for resource in c.resourceTypes:
+        ratio = player.tradeRatios[resource]
+        if player.cardsInHand[resource] >= ratio:
+            tradeAwayMenu["{} at {} to 1".format(resource, ratio)] = resource
+
     print("Please select the resource you would like to maritime trade: ")
-    resourceTrading = present_menu(player, maritimeTradeMenu)
-
-    validOptionFound = False
-    while not validOptionFound:
-        quantCardsTrading = input("How many {} resource cards would you like to trade in? ".format(resourceTrading[1]))
-        try:
-            quantCardsTrading = int(quantCardsTrading)
-        except:
-            print("not an integer.  try again")
-            continue
-        action = quantCardsTrading
-        validOptionFound = True
-
-    print("Please select the resource type you would like to receive: ")
-    resourceReceiving = present_menu(player, maritimeTradeMenu)
-
-    validOptionFound = False
-    while not validOptionFound:
-        quantCardsReceiving = input("How many {} resource cards would you like to receive? ".format(
-            resourceReceiving[1]))
-        try:
-            quantCardsReceiving = int(quantCardsReceiving)
-        except:
-            print("not an integer.  try again")
-            continue
-        validOptionFound = True
-
-    result = player.make_maritime_trade(resourceTrading[0], quantCardsTrading, resourceReceiving[0],
-                                        quantCardsReceiving, resourceDecks)
-
-    return (0, "Cards successfully maritime traded!")
+    resourceTrading = ui.present_menu(player, tradeAwayMenu, "Trade Away", surface, titleFont, infoFont)
+    if resourceTrading is None:
+        return (1, "{} chose not to trade.".format(player.name))
+    tradeRatio = player.tradeRatios[resourceTrading]
+    tradeForMenu = {"Cancel and return to main menu": None}
+    for resource in c.resourceTypes:
+        if resource is not resourceTrading and resourceDecks[resource] > 0:
+            tradeForMenu[resource] = resource
+    resourceGetting = ui.present_menu(player, tradeForMenu, "Trade For", surface, titleFont, infoFont)
+    if resourceGetting is None:
+        return (1, "{} chose not to trade.".format(player.name))
+    tradeAmountMenu = {"Cancel and return to main menu": None}
+    counter = 1
+    while counter * tradeRatio <= player.cardsInHand[resourceTrading] and counter <= resourceDecks[resourceGetting]:
+        tradeAmountMenu["{} {} for {} {}".format(counter * tradeRatio, resourceTrading, counter, resourceGetting)] = \
+            counter
+        counter += 1
+    tradeQuantity = ui.present_menu(player, tradeAmountMenu, "Trade", surface, titleFont, infoFont)
+    if tradeQuantity is None:
+        return (1, "{} chose not to trade.".format(player.name))
+    player.discard_cards({resourceTrading: tradeQuantity * tradeRatio}, resourceDecks)
+    player.draw_cards({resourceGetting: tradeQuantity}, resourceDecks)
+    return (0, "{} traded {} {} for {} {}".format(player.name, tradeQuantity * tradeRatio, resourceTrading,
+                                                  tradeQuantity, resourceGetting))
 
 
 # A function to take th player's input and offer a trade to other players
@@ -503,252 +503,37 @@ def end_turn(player):
 
 # A function to get the new hex for the Robber and the player from whom the player wants to steal
 # Takes the player moving the Robber, the Robber, and the list of hexes
-def get_robber_play_from_player(player, robber, hexes, playerKey, surface, titleFont, infoFont):
-    # Check if the player is an AI or human
-    if player.isAI:
-        pass
-    else:
-        # Get the current hex of the Robber to use as a metric to know when the player has successfully picked a new hex
-        destinationHex = robber.currentHex
-        while destinationHex == robber.currentHex:
-            print("Choose a new hex for the Robber.")
-            # Ask the player to which hex they want to move the Robber
-            destinationHex = get_hex_from_player(player, hexes, playerKey)
-        if destinationHex is None:
-            return (1, "No hex selected. Returning.")
-        # A list to hold the players from whom the player can steal
-        playersAvailableToRob = []
-        # Loop through the vertices that surround the Robber's new hex
-        for vertex in destinationHex.vertices:
-            # Check whether each vertex has a settlement built on it
-            if vertex.settlement is not None:
-                # If so, check that the owner of that settlement is not the player
-                if vertex.settlement.owner != player and vertex.settlement.owner not in playersAvailableToRob:
-                    # If that's the case, the owner of that vertex is a player from whom the player can steal
-                    playersAvailableToRob.append(vertex.settlement.owner)
-        # The default value for the player from whom the player will steal
-        playerToRob = None
-        # If the player has multiple players from whom they can steal, ask them to choose their target
-        if len(playersAvailableToRob) > 0:
-            print("Choose the player from whom you wish to steal.")
-            playerToRob = get_player_from_player(player, playersAvailableToRob, surface, titleFont, infoFont)
-        # Return the hex to which the Robber will be moved and the player who will be robbed
-        return (0, destinationHex, playerToRob)
-
-
-# A function to get the player's decision on whether to play a knight before their roll
-# Takes the player to be queried
-def get_knight_choice_from_player(player):
-    # Check if the player is an AI or human
-    if player.isAI:
-        pass
-    else:
-        # Get the player's input on the decision
-        choice = input("\n{} enter k to play a Knight before the roll or enter r to roll now: ".format(player.name))
-        # Check that it was a valid input - if not, call the function again to repeat the query
-        if choice != "r" and choice != "k":
-            print("That was not a valid option.")
-            choice = get_knight_choice_from_player(player)
-        # Return either "r' or "k" based on whether the player wants to roll the dice or play a Knight
-        return choice
-
-
-# A function to get the player's choice from among multiple players
-# Takes the player choosing and the list of players from which the player is choosing
-def get_player_from_player(player, listOfPlayers, surface, titleFont, infoFont):
-    # Check if the player is an AI or human
-    if player.isAI:
-        pass
-    else:
-        # Create a list of names
-        playerNames = []
-        for plyr in listOfPlayers:
-            if plyr is not None:
-                playerNames.append(plyr.name)
-            else:
-                playerNames.append("Nobody")
-        # Make a dictionary of the player names the player objects
-        playerMenu = dict(zip(playerNames, listOfPlayers))
-        # Get the choice
-        print("Please choose a player.")
-        chosenPlayer = present_menu(player, playerMenu, "Steal from:", surface, titleFont, infoFont)
-        # Return the player object corresponding to the name entered by the player
-        return chosenPlayer
-
-
-# A function to get a hex chosen by the player
-# Takes the player choosing and the list of board hexes
-def get_hex_from_player(player, hexList, playerKey):
-    # Check if the player is an AI or human
-    if player.isAI:
-        pass
-    else:
-        # Loop until the user clicks on a vertex
-        validClick = False
-        while not validClick:
-            # Make sure no other events are on the queue
-            pygame.event.clear()
-            # Prompt the user for a click and wait for two events
-            print("{} please click a hex. Or click the Player Key to select nothing.".format(player.name))
-            chosenHex = None
-            eventA = pygame.event.wait()
-            eventB = pygame.event.wait()
-            # If the next two events are the mouse being pressed down and then released, move forward
-            if eventA.type == pygame.MOUSEBUTTONDOWN and eventB.type == pygame.MOUSEBUTTONUP:
-                posA = eventA.__dict__['pos']
-                posB = eventB.__dict__['pos']
-                # If the mouse actions (pressed down, released) were no more than 10 pixels apart, move forward
-                if gf.pp_distance(posA, posB) < 10:
-                    # If the click was inside the Player Key, return to the previous menu without a selection
-                    if gf.is_within_rect(playerKey.box, posA) and gf.is_within_rect(playerKey.box, posB):
-                        chosenHex = None
-                        validClick = True
-                        print("{} did not choose a hex.".format(player.name))
-                    else:
-                        # Loop through the hexes to see if the click ocurred inside one
-                        for hexTile in hexList:
-                            # If both mouse actions ocurred inside the current hex, move forward
-                            if gf.is_within_hex(hexTile, posA) and gf.is_within_hex(hexTile, posB):
-                                # Record the hex, switch the boolean to end the while loop, and break the hex loop
-                                chosenHex = hexTile
-                                validClick = True
-                                break
-                        if not validClick:
-                            print("That click was not inside a hex. Please try again.")
-                else:
-                    print("The mouse moved while pressed down. Please try again.")
-        return chosenHex
-
-
-# A function to get a vertex chosen by the player
-# Takes the player choosing and the list of vertices
-def get_vertex_from_player(player, vertexList, playerKey):
-    # Check if the player is an AI or human
-    if player.isAI:
-        pass
-    else:
-        # Loop until the user clicks on a vertex
-        validClick = False
-        while not validClick:
-            # Make sure no other events are on the queue
-            pygame.event.clear()
-            # Prompt the user for a click and wait for two events
-            print("{} please click a vertex. Or click the Player Key to select nothing.".format(player.name))
-            eventA = pygame.event.wait()
-            eventB = pygame.event.wait()
-            # If the next two events are the mouse being pressed down and then released, move forward
-            if eventA.type == pygame.MOUSEBUTTONDOWN and eventB.type == pygame.MOUSEBUTTONUP:
-                # Get the coordinates of the clicks
-                posA = eventA.__dict__['pos']
-                posB = eventB.__dict__['pos']
-                # Get the coordinates of each vertex on the board
-                vertexCoords = [v.coordinates for v in vertexList]
-                # Get coordinates of the vetices closest to where the mouse was pressed down and where it was released
-                verCoordA = gf.get_closest_point(vertexCoords, posA)
-                verCoordB = gf.get_closest_point(vertexCoords, posB)
-                # If the two coordinates are the same and both events happened within 10 pixels each other, move forward
-                if verCoordA[0] == verCoordB[0] and abs(verCoordA[1] - verCoordB[1]) < 10:
-                    # If the click was inside the Player Key, return to the previous menu without a selection
-                    if gf.is_within_rect(playerKey.box, posA) and gf.is_within_rect(playerKey.box, posB):
-                        closestVertex = None
-                        validClick = True
-                        print("{} did not choose a vertex.".format(player.name))
-                    else:
-                        # If the mouse action (pressed down, released) happened within 10 pixels of
-                        # the closest vertex, move forward
-                        if verCoordA[1] <= 10 and verCoordB[1] <= 10:
-                            # With all condiitions satisfied, find the vertex corresponding to the coordinates found
-                            closestVertex = vertexList[vertexCoords.index(verCoordA[0])]
-                            validClick = True
-                        else:
-                            print("That click was not close enough to a vertex. Please try again.")
-                else:
-                    print("The mouse moved while pressed down. Please try again.")
-        return closestVertex
-
-
-def present_menu(player, menuDict, titleContent, surface, titleFont, infoFont):
-    if player.isAI:
-        pass
-    else:
-        chosenOpt = present_graphical_menu(player, menuDict, titleContent, surface, titleFont, infoFont)
-        choice = menuDict[chosenOpt]
-        surface.fill(c.white)
-        pygame.display.update(surface.get_rect())
-        '''
-        print("The available options are:")
-        menuOpts = sorted(list(menuDict.keys()))
-        for i, e in enumerate(menuOpts):
-            print("\t{}\t{}".format(i, e))
-
-        validOptionFound = False
-        while not validOptionFound:
-            option = input("Please choose an option: ")
-            try:
-                optIndex = int(option)
-            except:
-                print("not an integer.  try again")
-                continue
-            try:
-                optKey = menuOpts[optIndex]
-            except:
-                print("not a valid option.  try again")
-                continue
-            choice = menuDict[optKey]
-            validOptionFound = True
-        '''
-        return choice
-
-
-def present_graphical_menu(player, menuDict, titleContent, surface, titleFont, infoFont):
-    surface.fill(c.white)
-    pygame.display.update(surface.get_rect())
-    surfaceWidth = surface.get_width()
-    titleLabel = titleFont.render(titleContent, 1, c.black)
-    surface.blit(titleLabel, (25, 7))
-    menuOpts = sorted(list(menuDict.keys()))
-    menuOptSurfaces = [surface.subsurface(pygame.Rect((0, 47 + i*25), (surfaceWidth, 25)))
-                       for i in range(len(menuOpts))]
-    for i, optSurface in enumerate(menuOptSurfaces):
-        optLabel = infoFont.render(menuOpts[i], 1, c.black)
-        optSurface.blit(optLabel, (10, 2))
-    pygame.display.update(surface.get_rect())
-    rectList = [pygame.Rect(oS.get_abs_offset(), (oS.get_rect().width, oS.get_rect().height)) for oS in menuOptSurfaces]
-    chosenRect = get_rect_from_player(player, rectList)
-    chosenOpt = menuOpts[rectList.index(chosenRect)]
-    return chosenOpt
-
-
-def get_rect_from_player(player, rectList):
-    # Loop until the user clicks on a vertex
-    validClick = False
-    while not validClick:
-        # Make sure no other events are on the queue
-        pygame.event.clear()
-        # Prompt the user for a click and wait for two events
-        print("{} please click a option.".format(player.name))
-        chosenRect = None
-        eventA = pygame.event.wait()
-        eventB = pygame.event.wait()
-        # If the next two events are the mouse being pressed down and then released, move forward
-        if eventA.type == pygame.MOUSEBUTTONDOWN and eventB.type == pygame.MOUSEBUTTONUP:
-            posA = eventA.__dict__['pos']
-            posB = eventB.__dict__['pos']
-            # If the mouse actions (pressed down, released) were no more than 10 pixels apart, move forward
-            if gf.pp_distance(posA, posB) < 10:
-                # Loop through the rects to see if the click ocurred inside one
-                for rect in rectList:
-                    # If both mouse actions ocurred inside the current hex, move forward
-                    if gf.is_within_rect(rect, posA) and gf.is_within_rect(rect, posB):
-                        # Record the rect, switch the boolean to end the while loop, and break the rect loop
-                        chosenRect = rect
-                        validClick = True
-                        break
-                if not validClick:
-                    print("That click was not inside a rect. Please try again.")
-            else:
-                print("The mouse moved while pressed down. Please try again.")
-    return chosenRect
+def use_robber(player, robber, hexes, boardSurface, playerKey, menuSurface, titleFont, infoFont):
+    # Get the current hex of the Robber to use as a metric to know when the player has successfully picked a new hex
+    destinationHex = robber.currentHex
+    print("Choose a new hex for the Robber.")
+    # Ask the player to which hex they want to move the Robber
+    destinationHex = ui.get_hex_from_player(player, hexes, playerKey)
+    if destinationHex is None:
+        return (1, "{} did not choose a hex.".format(player.name))
+    # A list to hold the players from whom the player can steal
+    playersAvailableToRob = []
+    # Loop through the vertices that surround the Robber's new hex
+    for vertex in destinationHex.vertices:
+        # Check whether each vertex has a settlement built on it
+        if vertex.settlement is not None:
+            # If so, check that the owner of that settlement is not the player
+            if vertex.settlement.owner != player and vertex.settlement.owner not in playersAvailableToRob:
+                # If that's the case, the owner of that vertex is a player from whom the player can steal
+                playersAvailableToRob.append(vertex.settlement.owner)
+    # The default value for the player from whom the player will steal
+    playerToRob = None
+    # If the player has multiple players from whom they can steal, ask them to choose their target
+    if len(playersAvailableToRob) > 0:
+        print("Choose the player from whom you wish to steal.")
+        playerMenu = {"Cancel and return to main menu": None}
+        for plyr in playersAvailableToRob:
+            playerMenu["{} ({} cards)".format(plyr.name, sum(plyr.cardsInHand.values()))] = plyr
+        playerToRob = ui.present_menu(player, playerMenu, "Steal from", menuSurface, titleFont, infoFont)
+    if playerToRob is None:
+        return (2, "{} did not choose a player.".format(player.name))
+    robberResult = robber.play(boardSurface, destinationHex, player, playerToRob)
+    return (0, robberResult)
 
 
 # Function that simply rolls the dice and returns the result
@@ -764,14 +549,14 @@ def roll_dice(player):
 
 # Function that deals with the choice to play the knight first
 # Takes the player in question
-def play_knight(player, robber, hexes, largestArmy, surface, playerKey):
+def play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey, menuSurface, titleFont, infoFont):
     player.developmentCards.append("Knight")
     # Ask the player how they'd like to use the Robber
-    robberPlay = get_robber_play_from_player(player, robber, hexes, playerKey)
-    if robberPlay[0] == 1:
+    robberPlay = use_robber(player, robber, hexes, playerKey, menuSurface, titleFont, infoFont)
+    if robberPlay[0] != 0:
         return (1, "{} chose not to play the Knight.".format(player.name))
     # Attempt to make that play
-    knightResult = player.play_knight(robber, robberPlay[1], robberPlay[2], largestArmy, surface)
+    knightResult = player.play_knight(largestArmy)
     pygame.display.update()
     print(knightResult[1])
     print()

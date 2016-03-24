@@ -1,4 +1,4 @@
-'''Contains the Class definitions for all persistent objects in the game'''
+"""Contains the Class definitions for all persistent objects in the game"""
 
 import math
 import random
@@ -8,8 +8,8 @@ import constants as c
 
 # A hexagonal tile that composes the game board
 class Hex(object):
-    '''Defined by its location, owner, resource, and odds for harvest.
-       Also knows its size and whether it has the Robber.'''
+    """Defined by its location, owner, resource, and odds for harvest.
+       Also knows its size and whether it has the Robber."""
     def __init__(self, resource, odds, color, coordinates):
         self.resource = resource
         self.odds = odds
@@ -36,8 +36,8 @@ class Hex(object):
 
 # A vertex between hexagonal tiles and/or coasts
 class Vertex(object):
-    '''Defined by its location and relationship to hexes and other vertices.
-       Also knows of ports, settlements, and roads on it.'''
+    """Defined by its location and relationship to hexes and other vertices.
+       Also knows of ports, settlements, and roads on it."""
     def __init__(self, coordinates):
         self.hexes = []
         self.port = None
@@ -50,8 +50,8 @@ class Vertex(object):
 
 # A town or city able to be placed on a vertex
 class Settlement(object):
-    '''Defined by its size (town or city) and owner.
-       Also knows if/where it's been built and its size'''
+    """Defined by its size (town or city) and owner.
+       Also knows if/where it's been built and its size"""
     def __init__(self, scale, player):
         self.scale = scale
         self.owner = player
@@ -60,7 +60,7 @@ class Settlement(object):
         self.circumradius = int(round(math.sqrt(50 + 10 * math.sqrt(5)) * self.edgeLength / 10))
     
     def find_yield(self, roll):
-        '''Checks surrounding hex tiles for odds that match the roll and returns resources accordingly.'''
+        """Checks surrounding hex tiles for odds that match the roll and returns resources accordingly."""
         yieldedResources = dict(zip(c.resourceTypes, [0, 0, 0, 0, 0]))
         for hexTile in self.vertex.hexes:
             if hexTile.odds == roll and not hexTile.hasRobber and hexTile.resource != "Desert":
@@ -68,7 +68,7 @@ class Settlement(object):
         return yieldedResources
 
     def draw_settlement(self, surface):
-        '''Places image (square for town, pentagon for city) of settlement over its vertex, in the owner's color.'''
+        """Places image (square for town, pentagon for city) of settlement over its vertex, in the owner's color."""
         if self.scale == 1:
             pygame.draw.rect(surface, self.owner.color, pygame.Rect(self.vertex.coordinates[0] - self.edgeLength / 2,
                                                                     self.vertex.coordinates[1] - self.edgeLength / 2,
@@ -88,7 +88,7 @@ class Settlement(object):
 
 # A road connecting settlements
 class Road(object):
-    '''Defined by its size, owner, and vertices it connects, if any.'''
+    """Defined by its size, owner, and vertices it connects, if any."""
     def __init__(self, player):
         self.owner = player
         self.vertex1 = None
@@ -96,21 +96,21 @@ class Road(object):
         self.width = c.roadWidth
 
     def draw_road(self, surface):
-        '''Places image of road along the edge between its vertices in the owner's color.'''
+        """Places image of road along the edge between its vertices in the owner's color."""
         pygame.draw.line(surface, self.owner.color, self.vertex1.coordinates, self.vertex2.coordinates, self.width)
 
 
 # A trading port along the coast
 class Port(object):
-    '''Defined by the resources it affects, the trade ratio for those resources, and the vertices that access it.'''
+    """Defined by the resources it affects, the trade ratio for those resources, and the vertices that access it."""
     def __init__(self, resources, rate):
         self.resources = resources
         self.rate = rate
         self.vertices = []
 
     def draw_port(self, surface, color):
-        '''Places image of port (triangle) off the coast in between the two vertices that can access it and 
-           colored according to the resources the port affects.'''
+        """Places image of port (triangle) off the coast in between the two vertices that can access it and
+           colored according to the resources the port affects."""
         neighborVertices = []
         for vertex in self.vertices:
             adjVerOptions = list(vertex.adjacentVertices)
@@ -151,7 +151,7 @@ class Port(object):
 
 # The Robber piece
 class Robber(object):
-    '''Defined by its size, color, location, and the hex tile it occupies.'''
+    """Defined by its size, color, location, and the hex tile it occupies."""
     def __init__(self, desertHex):
         self.currentHex = desertHex
         self.radius = c.robberRadius
@@ -160,7 +160,7 @@ class Robber(object):
                             self.currentHex.coordinates[1] - int(round(self.radius / 2)))
     
     def move(self, newHex, surface):
-        '''Alters the board image and properties of the Robber such that it changes position.'''
+        """Alters the board image and properties of the Robber such that it changes position."""
         pygame.draw.circle(surface, self.currentHex.color, self.coordinates, self.radius)
         self.currentHex.hasRobber = False
         self.currentHex = newHex
@@ -170,7 +170,7 @@ class Robber(object):
         self.draw_robber(surface)
 
     def steal_from(self, playerToRob):
-        '''Takes a random resource card from the targeted player.'''
+        """Takes a random resource card from the targeted player."""
         targetCards = playerToRob.cardsInHand
         targetHand = []
         for key in targetCards.keys():
@@ -184,7 +184,7 @@ class Robber(object):
             return cardStolen
 
     def play(self, surface, newHex, playerRobbing, playerToRob):
-        '''Combines Robber functions into a complete game action.'''
+        """Combines Robber functions into a complete game action."""
         self.move(newHex, surface)
         if playerToRob is None:
             return "{} moved the Robber and drew nothing from Nobody.".format(playerRobbing.name)
@@ -195,7 +195,7 @@ class Robber(object):
             return "{} moved the Robber and drew {} from {}.".format(playerRobbing.name, newCard, playerToRob.name)
 
     def draw_robber(self, surface):
-        '''Draws image of the Robber (circle) at its location.'''
+        """Draws image of the Robber (circle) at its location."""
         pygame.draw.circle(surface, self.color, self.coordinates, self.radius)
 
 
@@ -205,7 +205,7 @@ class Robber(object):
 #     Largest_Army, and list of resource cards in hand
 # Functions for each action a player can take during their turn
 class Player(object):
-    '''Defined by name, color, human or AI, game points, resources, development cards, infrastructure, and trade ratios.'''
+    """Defined by name, color, human or AI, game points, resources, dev. cards, infrastructure, and trade ratios."""
     def __init__(self, name, color, isAI):
         self.name = name
         self.color = color
@@ -224,7 +224,7 @@ class Player(object):
         self.tradeRatios = {c.wool: 4, c.grain: 4, c.lumber: 4, c.clay: 4, c.ore: 4}
     
     def build_town(self, vertexToSettle, resourceDecks, surface):
-        '''After checks, places town on a vertex and changes player data accordingly, including discarding resources.'''
+        """After checks, places town on a vertex and changes player data accordingly, including discarding resources."""
         for resource in c.townCost.keys():
             if self.cardsInHand[resource] < c.townCost[resource]:
                 return (2, "{} does not have enough {} to build a town.".format(self.name, resource))
@@ -258,7 +258,7 @@ class Player(object):
         return (1, "Failed to build the town for an unknown reason.")
     
     def build_city(self, vertexToUpgrade, resourceDecks, surface):
-        '''After checks, puts city over a town and changes player data accordingly, including discarding resources.'''
+        """After checks, puts city over a town and changes player data accordingly, including discarding resources."""
         for resource in c.cityCost.keys():
             if self.cardsInHand[resource] < c.cityCost[resource]:
                 return (2, "{} does not have enough {} to upgrade a settlement".format(self.name, resource))
@@ -282,7 +282,7 @@ class Player(object):
         return (1, "Failed to upgrade the settlement for an unknown reason")
     
     def build_road(self, vertex1, vertex2, longestRoad, resourceDecks, surface):
-        '''After checks, places road between vertices and changes player data accordingly.'''
+        """After checks, places road between vertices and changes player data accordingly."""
         if not self.unbuiltRoads:
             return (2, "{} does not have any roads to build".format(self.name))
         for resource in c.roadCost.keys():
@@ -322,7 +322,7 @@ class Player(object):
         return (0, "Success!")
     
     def buy_development_card(self, developmentDeck, resourceDecks):
-        '''After checks, exchanges resources for development card and alters player data and card decks accordingly.'''
+        """After checks, exchanges resources for development card and alters player data and card decks accordingly."""
         for resource in c.developmentCardCost.keys():
             if self.cardsInHand[resource] < c.developmentCardCost[resource]:
                 return (1, "{} does not have enough {} to buy a Development Card.".format(self.name, resource))
@@ -333,18 +333,18 @@ class Player(object):
         self.discard_cards(c.developmentCardCost, resourceDecks)
         return (0, "Success! {} bought a {}.".format(self.name, newCard))
 
-    def play_knight(self, robber, newHex, playerToRob, largestArmy, surface):
-        '''Moves a knight from player's hand to their army, checks Largest Army, and plays the Robber.'''
+    def play_knight(self, largestArmy):
+        """Moves a knight from player's hand to their army, checks Largest Army, and plays the Robber."""
         if "Knight" in self.developmentCards:
             self.armySize += 1
             self.developmentCards.remove("Knight")
             largestArmy.determine_owner()
-            return (0, "Success! " + robber.play(surface, newHex, self, playerToRob))
+            return (0, "Success!")
         else:
             return (1, "{} does not have any Knights to play.".format(self.name))
                 
     def play_monopoly(self, playerList, resourceWanted):
-        '''Exchanges Monopoly from player's hand for all of 1 resource from other players' hands.'''
+        """Exchanges Monopoly from player's hand for all of 1 resource from other players' hands."""
         if "Monopoly" not in self.developmentCards:
             return (1, "{} does not have a Monopoly Card to play.".format(self.name))
         self.developmentCards.remove("Monopoly")
@@ -358,7 +358,7 @@ class Player(object):
         return (0, "Success! {} gained {} {} cards.".format(self.name, takenCount, resourceWanted))
 
     def play_year_of_plenty(self, cardsDesired):
-        '''Exchanges Year of Plenty from player's hand for any 2 resource cards from the decks.'''
+        """Exchanges Year of Plenty from player's hand for any 2 resource cards from the decks."""
         if "Year of Plenty" in self.developmentCards:
             self.developmentCards.remove("Year of Plenty")
             self.draw_cards(cardsDesired[:2])
@@ -367,7 +367,7 @@ class Player(object):
             return 1
                 
     def play_road_building(self, vertexPair1, vertexPair2):
-        '''Exchanges Road Building from player's hand for the free construction of 2 roads.'''
+        """Exchanges Road Building from player's hand for the free construction of 2 roads."""
         if "Road Building" in self.developmentCards:
             for pair in [vertexPair1, vertexPair2]:
                 if len(self.unbuiltRoads) > 0:
@@ -385,19 +385,6 @@ class Player(object):
     def make_player_trade(self, cardsGiving, cardsTaking, tradeAgent):
         pass
 
-    def make_maritime_trade(self, resourceGiving, countGiving, resourceTaking, countTaking, resourceDecks):
-        if self.tradeRatios[resourceGiving] * countTaking != countGiving:
-            return (1, "{}'s trade ratio for {} does not allow that trade.".format(self.name, resourceGiving))
-        if countGiving > self.cardsInHand[resourceGiving]:
-            return (2, "{} does not have {} {} cards to discard.".format(self.name, countGiving, resourceGiving))
-        if countTaking > resourceDecks[resourceTaking]:
-            return (3, "There are not {} {} cards available.".format(countTaking, resourceTaking))
-        self.cardsInHand[resourceGiving] -= countGiving
-        resourceDecks[resourceGiving] += countGiving
-        self.cardsInHand[resourceTaking] += countTaking
-        resourceDecks[resourceTaking] -= countTaking
-        return (0, "Success!")
-    
     def discard_cards(self, cardsToDiscard, resourceDecks):
         for resource in cardsToDiscard.keys():
             if cardsToDiscard[resource] > self.cardsInHand[resource]:

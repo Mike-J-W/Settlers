@@ -26,7 +26,8 @@ playerColors = {"red": playerRed, "blue": playerBlue, "green": playerGreen, "pur
 # The menus dictionary
 preHarvestMenu = dict(
     zip(["Harvest your resources (AKA roll the dice)", "Play a Knight (if possible) and then harvest resources"],
-        ["roll_dice(player)", "play_knight(player,robber,hexes,largestArmy,boardSurface,playerKey)"]))
+        ["roll_dice(player)", "play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey, menuSurface, "
+                              "comicsansLargeFont, arialSmallFont)"]))
 postHarvestMenu = dict(
     zip(["Build a road", "Build a settlement", "Upgrade a settlement", "Buy a development card", "Play a knight",
          "Play a monopoly card", "Play a year of plenty card", "Play a road building card", "Make a maritime trade",
@@ -35,11 +36,13 @@ postHarvestMenu = dict(
          "build_settlement(player, vertices, resourceDecks, boardSurface, playerKey)",
          "upgrade_settlement(player, vertices, resourceDecks, boardSurface, playerKey)",
          "buy_development_card(player, resourceDecks, developmentDeck)", 
-         "play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey)", 
+         "play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey, menuSurface, comicsansLargeFont, "
+         "arialSmallFont)",
          "play_monopoly(player, playerList, menuSurface, titleFont, infoFont)",
          "play_yop_card(player, resourceDecks, menuSurface, titleFont, infoFont)", 
          "play_road_building(player, vertexList, longestRoad, resourceDecks, boardSurface, playerKey)", 
-         "maritime_trade(player, maritimeTradeMenu, resourceDecks)", "offer_trade()", "end_turn(player)"]))
+         "maritime_trade(player, resourceDecks, menuSurface, comicsansLargeFont, arialSmallFont)", "offer_trade()",
+         "end_turn(player)"]))
 
 # Set the piece and image sizes
 # The length of a side of a hex
