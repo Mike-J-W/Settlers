@@ -222,6 +222,7 @@ class Player(object):
         self.hasLargestArmy = False
         self.cardsInHand = {c.wool: 0, c.grain: 0, c.lumber: 0, c.clay: 0, c.ore: 0}
         self.tradeRatios = {c.wool: 4, c.grain: 4, c.lumber: 4, c.clay: 4, c.ore: 4}
+        self.log = []
     
     def build_town(self, vertexToSettle, resourceDecks, surface):
         """After checks, places town on a vertex and changes player data accordingly, including discarding resources."""
@@ -421,13 +422,12 @@ class Player(object):
             for settlement in self.builtSettlements:
                 pointCounter += settlement.scale
         if self.developmentCards:
-            for card in self.developmentCards:
-                if card == "Victory Point":
-                    pointCounter += 1
+            pointCounter += self.developmentCards.count("Victory Point")
         if self.hasLargestArmy:
             pointCounter += 2
         if self.hasLongestRoad:
             pointCounter += 2
+        self.points = pointCounter
         return pointCounter
 
 

@@ -167,11 +167,14 @@ def main():
     # Create the Player Key
     playerKey = p.PlayerKey(arialSmallFont, playerList)
     boardSurface = screen.subsurface((0, 0), c.oceanSize)
-    playerHandSurface = screen.subsurface((c.oceanWidth, 0), (c.gameMenuWidth, 100))
+    playerHandSurface = screen.subsurface((c.oceanWidth, 0), (c.gameMenuWidth, 225))
     playerHandSurface.fill(c.white)
-    menuSurface = screen.subsurface((c.oceanWidth, 100), (c.gameMenuWidth, c.oceanHeight-100))
+    menuSurface = screen.subsurface((c.oceanWidth, 226), (c.gameMenuWidth, c.oceanHeight-226))
     menuSurface.fill(c.white)
-    logSurface = screen.subsurface((c.oceanWidth + c.gameMenuWidth + 1, 0), (c.gameEventLogWidth - 1, c.oceanHeight))
+    enemyInfoSurface = screen.subsurface((c.oceanWidth + c.gameMenuWidth + 1, 0), (c.gameEventLogWidth -1, 225))
+    enemyInfoSurface.fill(c.white)
+    logSurface = screen.subsurface((c.oceanWidth + c.gameMenuWidth + 1, 226), (c.gameEventLogWidth - 1,
+                                                                               c.oceanHeight - 226))
     logSurface.fill(c.white)
 
     # The pygame loop
@@ -295,6 +298,8 @@ def main():
 
                 turnOver = False
                 while not turnOver:
+                    draw_enemy_info(player, playerList, enemyInfoSurface, arialSmallFont)
+                    pygame.display.update(enemyInfoSurface.get_rect())
                     draw_player_hand(player, playerHandSurface, comicsansLargeFont, arialSmallFont)
                     pygame.display.update(playerHandSurface.get_rect())
 #                    present_graphical_menu(player, postHarvestMenu, menuSurface, comicsansLargeFont, arialSmallFont)
@@ -310,13 +315,6 @@ def main():
                             gameOver = True
                 if gameOver:
                     break
-
-            boardSurface.fill(c.black)
-            pygame.display.update()
-            boardDrawn = False
-
-        # waits ten seconds and then starts the whole process over again
-        time.sleep(2)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -493,9 +491,8 @@ def offer_trade():
 
 # A function to complete end-of-turn checks and move to the next player
 def end_turn(player):
-    # Count the player's point
+    # Count the player's points
     pointTotal = player.count_points()
-    player.points = pointTotal
     # Clear the screen
     os.system('cls' if os.name == 'nt' else 'clear')
     return (0, "Turn is over.", pointTotal)
@@ -550,11 +547,12 @@ def roll_dice(player):
 # Function that deals with the choice to play the knight first
 # Takes the player in question
 def play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey, menuSurface, titleFont, infoFont):
-    player.developmentCards.append("Knight")
+    if "Knight" not in player.developmentCards:
+        return (1, "{} does not have a Knight to play.".format(player.name))
     # Ask the player how they'd like to use the Robber
-    robberPlay = use_robber(player, robber, hexes, playerKey, menuSurface, titleFont, infoFont)
+    robberPlay = use_robber(player, robber, hexes, boardSurface, playerKey, menuSurface, titleFont, infoFont)
     if robberPlay[0] != 0:
-        return (1, "{} chose not to play the Knight.".format(player.name))
+        return (2, "{} chose not to play the Knight.".format(player.name))
     # Attempt to make that play
     knightResult = player.play_knight(largestArmy)
     pygame.display.update()
@@ -580,6 +578,44 @@ def draw_player_hand(player, surface, titleFont, infoFont):
         pygame.draw.rect(surface, c.resourceToColor[resource], box)
         label = infoFont.render(" - {}".format(player.cardsInHand[resource]), 1, c.black)
         surface.blit(label, (x+16, y))
+    for i, card in enumerate(["Road Building", "Year of Plenty", "Victory Point"]):
+        cardLabel = infoFont.render("{}: {}".format(card, player.developmentCards.count(card)), 1, c.black)
+        surface.blit(cardLabel, (15,100 + 20 * i))
+    for i, card in enumerate(["Monopoly", "Knight"]):
+        cardLabel = infoFont.render("{}: {}".format(card, player.developmentCards.count(card)), 1, c.black)
+        surface.blit(cardLabel, (135,100 + 20 * i))
+    armyLabel = infoFont.render("Army: {}".format(player.armySize), 1, c.black)
+    surface.blit(armyLabel, (135, 140))
+    largestArmyLabel = infoFont.render("Largest Army: {}".format(player.hasLargestArmy), 1, c.black)
+    surface.blit(largestArmyLabel, (15, 160))
+    longestRaodLabel = infoFont.render("Longest Road: {}".format(player.hasLongestRoad), 1, c.black)
+    surface.blit(longestRaodLabel, (15, 180))
+    pointsLabel = infoFont.render("Total Points: {}".format(player.points), 1, c.black)
+    surface.blit(pointsLabel, (15, 200))
+
+
+def draw_enemy_info(player, playerList, surface, infoFont):
+    surface.fill(c.white)
+    enemyList = [person for person in playerList if person is not player]
+    for i, enemy in enumerate(enemyList):
+        colorBox = pygame.Rect((15, 15 + i * 72), (15, 15))
+        pygame.draw.rect(surface, enemy.color, colorBox)
+        resourceLabel = infoFont.render("Resources: {}".format(sum(enemy.cardsInHand.values())), 1, c.black)
+        surface.blit(resourceLabel, (40, 15 + i * 72))
+        armyLabel = infoFont.render("Army: {}".format(enemy.armySize), 1, c.black)
+        surface.blit(armyLabel, (140, 15 + i * 72))
+        laLabel = infoFont.render("LA: {}".format(enemy.hasLargestArmy), 1, c.black)
+        surface.blit(laLabel, (15, 35 + i * 72))
+        lrLabel = infoFont.render("LR: {}".format(enemy.hasLongestRoad), 1, c.black)
+        surface.blit(lrLabel, (100, 35 + i * 72))
+        cardsLabel = infoFont.render("Development Cards: {}".format(len(enemy.developmentCards)), 1, c.black)
+        surface.blit(cardsLabel, (15, 55 + i * 72))
+
+
+def append_public_log(message, playerList, publicLog):
+    publicLog.append(message)
+    for player in playerList:
+        player.log.append(message)
 
 
 if __name__ == "__main__":
