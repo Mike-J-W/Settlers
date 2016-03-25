@@ -223,15 +223,44 @@ class Player(object):
         self.cardsInHand = {c.wool: 0, c.grain: 0, c.lumber: 0, c.clay: 0, c.ore: 0}
         self.tradeRatios = {c.wool: 4, c.grain: 4, c.lumber: 4, c.clay: 4, c.ore: 4}
         self.log = []
+
+    def can_afford(self, cost):
+        for resource in cost.keys():
+            if self.cardsInHand[resource] < cost[resource]:
+                return False
+        return True
+
+    def has_unbuilt_town(self):
+        if self.unbuiltSettlements:
+            towns = [settlement for settlement in self.unbuiltSettlements if settlement.scale == 1]
+            if towns:
+                return True
+        return False
+
+    def has_unbuilt_city(self):
+        if self.unbuiltSettlements:
+            cities = [settlement for settlement in self.unbuiltSettlements if settlement.scale == 2]
+            if cities:
+                return True
+        return False
+
+    def has_unbuilt_road(self):
+        if self.unbuiltRoads:
+            return True
+        return False      
+
+    def has_dev_card(self, card):
+        if card in self.developmentCards:
+            return True
+        return False
     
     def build_town(self, vertexToSettle, resourceDecks, surface):
         """After checks, places town on a vertex and changes player data accordingly, including discarding resources."""
-        for resource in c.townCost.keys():
-            if self.cardsInHand[resource] < c.townCost[resource]:
-                return (2, "{} does not have enough {} to build a town.".format(self.name, resource))
+        if not self.can_afford(c.townCost):
+                return (2, "{} cannot afford to build a town.".format(self.name, resource))
         if not vertexToSettle.canBeSettled:
             return (3, "That vertex cannot be built upon.")
-        if not self.unbuiltSettlements:
+        if not self.has_unbuilt_town():
             return (4, "{} does not have any towns to build.".format(self.name))
         if len(self.builtSettlements) >= 2:
             onRoad = False
@@ -249,7 +278,7 @@ class Player(object):
                 vertexToSettle.settlement = settlement
                 for vertex in [vertexToSettle] + vertexToSettle.adjacentVertices:
                     vertex.canBeSettled = False
-                self.discard_cards(c.townCost, resourceDecks)
+                self.discard_resources(c.townCost, resourceDecks)
                 settlement.draw_settlement(surface)
                 if settlement.vertex.port is not None:
                     for rsc in settlement.vertex.port.resources:
@@ -260,10 +289,9 @@ class Player(object):
     
     def build_city(self, vertexToUpgrade, resourceDecks, surface):
         """After checks, puts city over a town and changes player data accordingly, including discarding resources."""
-        for resource in c.cityCost.keys():
-            if self.cardsInHand[resource] < c.cityCost[resource]:
-                return (2, "{} does not have enough {} to upgrade a settlement".format(self.name, resource))
-        if 2 not in [s.scale for s in self.unbuiltSettlements]:
+        if not self.can_afford(c.cityCost):
+            return (2, "{} does not have enough {} to upgrade a settlement".format(self.name, resource))
+        if not self.has_unbuilt_city:
             return (3, "{} does not have any cities left to play.".format(self.name))
         if vertexToUpgrade.settlement not in self.builtSettlements:
             return (4, "{} does not have a settlement on that vertex.".format(self.name))
@@ -277,18 +305,17 @@ class Player(object):
                 self.unbuiltSettlements.append(vertexToUpgrade.settlement)
                 vertexToUpgrade.settlement = settlement
                 settlement.vertex = vertexToUpgrade
-                self.discard_cards(c.cityCost, resourceDecks)
+                self.discard_resources(c.cityCost, resourceDecks)
                 settlement.draw_settlement(surface)
                 return (0, "Success!")
         return (1, "Failed to upgrade the settlement for an unknown reason")
-    
+   
     def build_road(self, vertex1, vertex2, longestRoad, resourceDecks, surface):
         """After checks, places road between vertices and changes player data accordingly."""
+        if not self.can_afford(c.roadCost):
+            return (3, "{} does not have enough {} to build a road.".format(self.name, resource))
         if not self.unbuiltRoads:
             return (2, "{} does not have any roads to build".format(self.name))
-        for resource in c.roadCost.keys():
-            if self.cardsInHand[resource] < c.roadCost[resource]:
-                return (3, "{} does not have enough {} to build a road.".format(self.name, resource))
         if vertex1 not in vertex2.adjacentVertices:
             return (4, "Those vertices are not adjacent.")
         if vertex1.roads:
@@ -317,68 +344,27 @@ class Player(object):
         vertex1.roads.append(newRoad)
         newRoad.vertex2 = vertex2
         vertex2.roads.append(newRoad)
-        self.discard_cards(c.roadCost, resourceDecks)
+        self.discard_resources(c.roadCost, resourceDecks)
         longestRoad.determine_owner()
         newRoad.draw_road(surface)
         return (0, "Success!")
     
     def buy_development_card(self, developmentDeck, resourceDecks):
         """After checks, exchanges resources for development card and alters player data and card decks accordingly."""
-        for resource in c.developmentCardCost.keys():
-            if self.cardsInHand[resource] < c.developmentCardCost[resource]:
-                return (1, "{} does not have enough {} to buy a Development Card.".format(self.name, resource))
+        if not self.can_afford(c.developmentCardCost):
+            return (1, "{} does not have enough {} to buy a Development Card.".format(self.name, resource))
         if len(developmentDeck) == 0:
             return (2, "The deck of Development Cards is empty.")
         newCard = developmentDeck.popleft()
         self.developmentCards.append(newCard)
-        self.discard_cards(c.developmentCardCost, resourceDecks)
+        self.discard_resources(c.developmentCardCost, resourceDecks)
         return (0, "Success! {} bought a {}.".format(self.name, newCard))
 
-    def play_knight(self, largestArmy):
-        """Moves a knight from player's hand to their army, checks Largest Army, and plays the Robber."""
-        if "Knight" in self.developmentCards:
-            self.armySize += 1
-            self.developmentCards.remove("Knight")
-            largestArmy.determine_owner()
-            return (0, "Success!")
-        else:
-            return (1, "{} does not have any Knights to play.".format(self.name))
-                
-    def play_monopoly(self, playerList, resourceWanted):
-        """Exchanges Monopoly from player's hand for all of 1 resource from other players' hands."""
-        if "Monopoly" not in self.developmentCards:
-            return (1, "{} does not have a Monopoly Card to play.".format(self.name))
-        self.developmentCards.remove("Monopoly")
-        playerListCopy = playerList.copy()
-        playerListCopy.remove(self)
-        originalCount = self.cardsInHand[resourceWanted]
-        for player in playerListCopy:
-            self.cardsInHand[resourceWanted] += player.cardsInHand[resourceWanted]
-            player.cardsInHand[resourceWanted] = 0
-        takenCount = self.cardsInHand[resourceWanted] - originalCount
-        return (0, "Success! {} gained {} {} cards.".format(self.name, takenCount, resourceWanted))
-
-    def play_year_of_plenty(self, cardsDesired):
-        """Exchanges Year of Plenty from player's hand for any 2 resource cards from the decks."""
-        if "Year of Plenty" in self.developmentCards:
-            self.developmentCards.remove("Year of Plenty")
-            self.draw_cards(cardsDesired[:2])
-            return 0
-        else:
-            return 1
-                
-    def play_road_building(self, vertexPair1, vertexPair2):
-        """Exchanges Road Building from player's hand for the free construction of 2 roads."""
-        if "Road Building" in self.developmentCards:
-            for pair in [vertexPair1, vertexPair2]:
-                if len(self.unbuiltRoads) > 0:
-                    if len(pair) > 1:
-                        self.build_road(pair[0], pair[1])
-                    else:
-                        return 1
-            return 0
-        else:
-            return 1
+    def consume_dev_card(self, card):
+        if not self.has_dev_card(card):
+            return (1, "{} does not have a {} card to consume.".format(self.name, card))
+        self.developmentCards.remove(card)
+        return (0, "{} consumed a {} card.".format(self.name, card))
 
     def offer_trade(self, cardsOffering, cardsRequesting, playersNotified):
         pass
@@ -386,7 +372,7 @@ class Player(object):
     def make_player_trade(self, cardsGiving, cardsTaking, tradeAgent):
         pass
 
-    def discard_cards(self, cardsToDiscard, resourceDecks):
+    def discard_resources(self, cardsToDiscard, resourceDecks):
         for resource in cardsToDiscard.keys():
             if cardsToDiscard[resource] > self.cardsInHand[resource]:
                 return (1, "{} does not have {} {} cards to discard.".format(self.name,
@@ -396,7 +382,7 @@ class Player(object):
             resourceDecks[resource] += cardsToDiscard[resource]
         return (0, "Success!")
     
-    def draw_cards(self, cardsToDraw, resourceDecks):
+    def draw_resources(self, cardsToDraw, resourceDecks):
         for resource in cardsToDraw.keys():
             if cardsToDraw[resource] > resourceDecks[resource]:
                 return (1, "There are not {} {} cards available.".format(cardsToDraw[resource], resource))
@@ -414,7 +400,7 @@ class Player(object):
                 harvestDict = {c.grain: 0, c.ore: 0, c.wool: 0, c.clay: 0, c.lumber: 0}
                 for resource in c.resourceTypes:
                     harvestDict[resource] = harvest.count(resource)
-                self.draw_cards(harvestDict)
+                self.draw_resources(harvestDict)
     
     def count_points(self):
         pointCounter = 0

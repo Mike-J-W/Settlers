@@ -146,7 +146,7 @@ def main():
     # TODO EDITED THIS TO TEST MARITIME TRADING & BUILDING
     startingHand = {c.grain: 4, c.wool: 2, c.clay: 4, c.lumber: 4, c.ore: 3}
     for player in playerList:
-        player.draw_cards(startingHand, resourceDecks)
+        player.draw_resources(startingHand, resourceDecks)
     # Shuffle the players to set the turn order
     random.shuffle(playerList)
 
@@ -307,7 +307,7 @@ def main():
                     # Have the players draw their resource cards
                     for playerDrawing in playerList:
                         for settlement in playerDrawing.builtSettlements:
-                            playerDrawing.draw_cards(settlement.find_yield(diceResult), resourceDecks)
+                            playerDrawing.draw_resources(settlement.find_yield(diceResult), resourceDecks)
                         print("{} has {}".format(playerDrawing.name, playerDrawing.cardsInHand))
                     print("The decks have {}".format(resourceDecks))
 
@@ -348,7 +348,7 @@ def halve_player_hand(player, playerList, resourceDecks, handSurface, menuSurfac
         resourceMenu = OrderedDict(zip(resourcesInHand, resourcesInHand))
         cardToDiscard = ui.present_menu(player, resourceMenu, "Discard {}".format(numToDiscard), menuSurface, titleFont,
                                      infoFont)
-        player.discard_cards({cardToDiscard: 1}, resourceDecks)
+        player.discard_resources({cardToDiscard: 1}, resourceDecks)
         draw_player_hand(player, handSurface, titleFont, infoFont)
         pygame.display.update(handSurface.get_rect())
         numToDiscard -= 1
@@ -357,16 +357,20 @@ def halve_player_hand(player, playerList, resourceDecks, handSurface, menuSurfac
 
 # A function to take the player's input and build a road
 def build_road(player, vertexList, longestRoad, resourceDecks, surface, playerKey):
+    if not player.has_unbuilt_road():
+        return (1, "{} does not have any roads to build.".format(player.name))
+    if not player.can_afford(c.roadCost):
+        return (2, "{} cannot afford to build a road.".format(player.name))
     successfulBuild = False
     while not successfulBuild:
         print("Pick the first vertex.")
         vertex1 = ui.get_vertex_from_player(player, vertexList, playerKey)
         if vertex1 is None:
-            return (1, "No vertex picked. Returning.")
+            return (3, "No vertex picked. Returning.")
         print("Pick the second vertex.")
         vertex2 = ui.get_vertex_from_player(player, vertex1.adjacentVertices, playerKey)
         if vertex2 is None:
-            return (1, "No vertex picked. Returning")
+            return (3, "No vertex picked. Returning")
         result = player.build_road(vertex1, vertex2, longestRoad, resourceDecks, surface)
         print(result[1])
         if result[0] == 0:
@@ -377,12 +381,16 @@ def build_road(player, vertexList, longestRoad, resourceDecks, surface, playerKe
 
 # A function to take the player's input and build a settlement
 def build_settlement(player, vertexList, resourceDecks, surface, playerKey):
+    if not player.has_unbuilt_town():
+        return (1, "{} does not have any settlements to build.".format(player.name))
+    if not player.can_afford(c.townCost):
+        return (2, "{} cannot afford to build a settlement.".format(player.name))
     successfulBuild = False
     while not successfulBuild:
         print("{}, pick the vertex desired for the settlement.".format(player.name))
         vertexToSettle = ui.get_vertex_from_player(player, vertexList, playerKey)
         if vertexToSettle is None:
-            return (1, "No vertex selected. Returning.")
+            return (3, "No vertex selected. Returning.")
         result = player.build_town(vertexToSettle, resourceDecks, surface)
         print(result[1])
         if result[0] == 0:
@@ -393,12 +401,16 @@ def build_settlement(player, vertexList, resourceDecks, surface, playerKey):
 
 # A function to take the player's input and upgrade a settlement
 def upgrade_settlement(player, vertexList, resourceDecks, surface, playerKey):
+    if not player.has_unbuilt_city():
+        return (1, "{} does not have any cities to build.".format(player.name))
+    if not player.can_afford(c.cityCost):
+        return (2, "{} cannot afford to build a city.".format(player.name))
     successfulUpgrade = False
     while not successfulUpgrade:
         print("{}, pick the town you wish to upgrade.".format(player.name))
         vertexToUpgrade = ui.get_vertex_from_player(player, vertexList, playerKey)
         if vertexToUpgrade is None:
-            return(1, "No vertex selected. Returning.")
+            return(2, "No vertex selected. Returning.")
         result = player.build_city(vertexToUpgrade, resourceDecks, surface)
         print(result[1])
         if result[0] == 0:
@@ -415,6 +427,8 @@ def buy_development_card(player, resourceDecks, developmentDeck):
 
 # A function to take the player's input and play a monopoly card
 def play_monopoly_card(player, playerList, surface, titleFont, infoFont):
+    if not player.has_dev_card("Monopoly"):
+        return (1, "{} does not have a Monopoly card to play.".format(player.name))
     print("{}, which resource do you want to monopolize?".format(player.name))
     resourceMenu = OrderedDict(zip(c.resourceTypes, c.resourceTypes))
     resourceMenu["Cancel and return to main menu"] = None
@@ -422,98 +436,71 @@ def play_monopoly_card(player, playerList, surface, titleFont, infoFont):
                           infoFont)
     if choice is None:
         return (2, "{} cancelled the play. Returning.")
-    monopolyResult = player.play_monopoly(playerList, choice)
-    return monopolyResult
+    startCount = player.cardsInHand[choice]
+    enemyList = [person for person in playerList if person != player]
+    for enemy in enemyList:
+        enemyResourceCount = enemy.cardsInHand[choice]
+        enemy.discard_resources({choice: enemyResourceCount})
+        player.draw_resources({choice: enemyResourceCount})
+    gain = player.cardsInHand[choice] - startCount
+    return (0, "{} drew {} {} from the other players.".format(player.name, gain, choice))
 
 
 # A function to take the player's input and play a year of plenty card
 def play_yop_card(player, resourceDecks, surface, titleFont, infoFont):
-    if "Year of Plenty" not in player.developmentCards:
+    if not player.has_dev_card("Year of Plenty"):
         return (1, "{} does not have a Year of Plenty to play.".format(player.name))
     availableResources = [resource for resource in resourceDecks.keys() if resourceDecks[resource] > 0]
     resourceMenu = OrderedDict(zip(availableResources, availableResources))
     resourceMenu["Cancel and return to main menu"] = None
     print("{}, choose the first resource to draw.".format(player.name))
-    resource1 = ui.present_menu(player, resourceMenu, "Draw Which?", surface, titleFont, infoFont)
+    resource1 = ui.present_menu(player, resourceMenu, "Draw Which? (1)", surface, titleFont, infoFont)
     if resource1 is None:
         return (2, "{} chose to not play a Year of Plenty.".format(player.name))
-    player.draw_cards({resource1: 1}, resourceDecks)
-    player.developmentCards.remove("Year of Plenty")
+    player.draw_resources({resource1: 1}, resourceDecks)
+    player.consume_dev_card("Year of Plenty")
     availableResources = [resource for resource in resourceDecks.keys() if resourceDecks[resource] > 0]
     resourceMenu = OrderedDict(zip(availableResources, availableResources))
     resourceMenu["Don't draw a 2nd card"] = None
     print("{}, choose the second resource to draw.".format(player.name))
-    resource2 = ui.present_menu(player, resourceMenu, "Draw Which?", surface, titleFont, infoFont)
+    resource2 = ui.present_menu(player, resourceMenu, "Draw Which? (2)", surface, titleFont, infoFont)
     if resource2 is None:
         return (0, "{} used Year of Plenty to draw {}".format(player.name, resource1))
-    player.draw_cards({resource2: 1}, resourceDecks)
+    player.draw_resources({resource2: 1}, resourceDecks)
     return (0, "{} used Year of Plenty to draw {} and {}".format(player.name, resource1, resource2))
 
 
 # A function to take the player's input and play a road building card
 def play_road_building(player, vertexList, longestRoad, resourceDecks, surface, playerKey):
-    if "Road Building" not in player.developmentCards:
+    if not player.has_dev_card("Road Building"):
         return (1, "{} does not have a Road Building to play.".format(player.name))
     buildResult = build_road(player, vertexList, longestRoad, resourceDecks, surface, playerKey)
     if buildResult[0] == 1:
         return (2, "{} chose not to use Road Building.".format(player.name))
-    player.draw_cards(c.roadCost, resourceDecks)
-    player.developmentCards.remove("Road Building")
+    player.draw_resources(c.roadCost, resourceDecks)
+    player.consume_dev_card("Road Building")
     buildResult = build_road(player, vertexList, longestRoad, resourceDecks, surface, playerKey)
     if buildResult[0] == 1:
         return (0, "{} built 1 road with Road Building.".format(player.name))
-    player.draw_cards(c.roadCost, resourceDecks)
+    player.draw_resources(c.roadCost, resourceDecks)
     return (0, "{} built 2 roads with Road Building.".format(player.name))
 
 
-# A function to take the player's input and make a maritime trade
-def maritime_trade(player, resourceDecks, surface, titleFont, infoFont):
-    tradeAwayMenu = {"Cancel and return to main menu": None}
-    for resource in c.resourceTypes:
-        ratio = player.tradeRatios[resource]
-        if player.cardsInHand[resource] >= ratio:
-            tradeAwayMenu["{} at {} to 1".format(resource, ratio)] = resource
-
-    print("Please select the resource you would like to maritime trade: ")
-    resourceTrading = ui.present_menu(player, tradeAwayMenu, "Trade Away", surface, titleFont, infoFont)
-    if resourceTrading is None:
-        return (1, "{} chose not to trade.".format(player.name))
-    tradeRatio = player.tradeRatios[resourceTrading]
-    tradeForMenu = {"Cancel and return to main menu": None}
-    for resource in c.resourceTypes:
-        if resource is not resourceTrading and resourceDecks[resource] > 0:
-            tradeForMenu[resource] = resource
-    resourceGetting = ui.present_menu(player, tradeForMenu, "Trade For", surface, titleFont, infoFont)
-    if resourceGetting is None:
-        return (1, "{} chose not to trade.".format(player.name))
-    tradeAmountMenu = {"Cancel and return to main menu": None}
-    counter = 1
-    while counter * tradeRatio <= player.cardsInHand[resourceTrading] and counter <= resourceDecks[resourceGetting]:
-        tradeAmountMenu["{} {} for {} {}".format(counter * tradeRatio, resourceTrading, counter, resourceGetting)] = \
-            counter
-        counter += 1
-    tradeQuantity = ui.present_menu(player, tradeAmountMenu, "Trade", surface, titleFont, infoFont)
-    if tradeQuantity is None:
-        return (1, "{} chose not to trade.".format(player.name))
-    player.discard_cards({resourceTrading: tradeQuantity * tradeRatio}, resourceDecks)
-    player.draw_cards({resourceGetting: tradeQuantity}, resourceDecks)
-    return (0, "{} traded {} {} for {} {}".format(player.name, tradeQuantity * tradeRatio, resourceTrading,
-                                                  tradeQuantity, resourceGetting))
-
-
-# A function to take th player's input and offer a trade to other players
-def offer_trade():
-    pass
-
-
-# A function to complete end-of-turn checks and move to the next player
-def end_turn(player, handSurface):
-    # Count the player's points
-    pointTotal = player.count_points()
-    # Clear the screen
-    handSurface.fill(c.white)
-    os.system('cls' if os.name == 'nt' else 'clear')
-    return (0, "Turn is over.", pointTotal)
+# Function that deals with the choice to play the knight first
+# Takes the player in question
+def play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey, menuSurface, titleFont, infoFont):
+    if not player.has_dev_card("Knight"):
+        return (1, "{} does not have a Knight to play.".format(player.name))
+    # Ask the player how they'd like to use the Robber
+    robberPlay = use_robber(player, robber, hexes, boardSurface, playerKey, menuSurface, titleFont, infoFont)
+    if robberPlay[0] != 0:
+        return (2, "{} chose not to play the Knight.".format(player.name))
+    # Attempt to make that play
+    self.armySize += 1
+    self.developmentCards.remove("Knight")
+    largestArmy.determine_owner()
+    pygame.display.update()
+    return (0, robberPlay[1])
 
 
 # A function to get the new hex for the Robber and the player from whom the player wants to steal
@@ -551,6 +538,56 @@ def use_robber(player, robber, hexes, boardSurface, playerKey, menuSurface, titl
     return (0, robberResult)
 
 
+# A function to take the player's input and make a maritime trade
+def maritime_trade(player, resourceDecks, surface, titleFont, infoFont):
+    tradeAwayMenu = {"Cancel and return to main menu": None}
+    for resource in c.resourceTypes:
+        ratio = player.tradeRatios[resource]
+        if player.cardsInHand[resource] >= ratio:
+            tradeAwayMenu["{} at {} to 1".format(resource, ratio)] = resource
+
+    print("Please select the resource you would like to maritime trade: ")
+    resourceTrading = ui.present_menu(player, tradeAwayMenu, "Trade Away", surface, titleFont, infoFont)
+    if resourceTrading is None:
+        return (1, "{} chose not to trade.".format(player.name))
+    tradeRatio = player.tradeRatios[resourceTrading]
+    tradeForMenu = {"Cancel and return to main menu": None}
+    for resource in c.resourceTypes:
+        if resource is not resourceTrading and resourceDecks[resource] > 0:
+            tradeForMenu[resource] = resource
+    resourceGetting = ui.present_menu(player, tradeForMenu, "Trade For", surface, titleFont, infoFont)
+    if resourceGetting is None:
+        return (1, "{} chose not to trade.".format(player.name))
+    tradeAmountMenu = {"Cancel and return to main menu": None}
+    counter = 1
+    while counter * tradeRatio <= player.cardsInHand[resourceTrading] and counter <= resourceDecks[resourceGetting]:
+        tradeAmountMenu["{} {} for {} {}".format(counter * tradeRatio, resourceTrading, counter, resourceGetting)] = \
+            counter
+        counter += 1
+    tradeQuantity = ui.present_menu(player, tradeAmountMenu, "Trade", surface, titleFont, infoFont)
+    if tradeQuantity is None:
+        return (1, "{} chose not to trade.".format(player.name))
+    player.discard_resources({resourceTrading: tradeQuantity * tradeRatio}, resourceDecks)
+    player.draw_resources({resourceGetting: tradeQuantity}, resourceDecks)
+    return (0, "{} traded {} {} for {} {}".format(player.name, tradeQuantity * tradeRatio, resourceTrading,
+                                                  tradeQuantity, resourceGetting))
+
+
+# A function to take th player's input and offer a trade to other players
+def offer_trade():
+    pass
+
+
+# A function to complete end-of-turn checks and move to the next player
+def end_turn(player, handSurface):
+    # Count the player's points
+    pointTotal = player.count_points()
+    # Clear the screen
+    handSurface.fill(c.white)
+    os.system('cls' if os.name == 'nt' else 'clear')
+    return (0, "Turn is over.", pointTotal)
+
+
 # Function that simply rolls the dice and returns the result
 def roll_dice(player):
     # Roll the dice and print the result
@@ -560,23 +597,6 @@ def roll_dice(player):
     print("{} rolled a(n) {}.\n".format(player.name, diceResult))
 
     return diceResult
-
-
-# Function that deals with the choice to play the knight first
-# Takes the player in question
-def play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey, menuSurface, titleFont, infoFont):
-    if "Knight" not in player.developmentCards:
-        return (1, "{} does not have a Knight to play.".format(player.name))
-    # Ask the player how they'd like to use the Robber
-    robberPlay = use_robber(player, robber, hexes, boardSurface, playerKey, menuSurface, titleFont, infoFont)
-    if robberPlay[0] != 0:
-        return (2, "{} chose not to play the Knight.".format(player.name))
-    # Attempt to make that play
-    knightResult = player.play_knight(largestArmy)
-    pygame.display.update()
-    print(knightResult[1])
-    print()
-    return knightResult
 
 
 def draw_player_hand(player, surface, titleFont, infoFont):
