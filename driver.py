@@ -3,7 +3,7 @@ import pygame
 import time
 import sys
 import os
-import collections
+from collections import deque, OrderedDict
 import constants as c
 import pieces as p
 import userinput as ui
@@ -13,7 +13,7 @@ def main():
 
     # A dictionary to hold the decks of resources, keyed to their resource name
     resourceDecks = {c.lumber: 19, c.grain: 19, c.wool: 19, c.clay: 19, c.ore: 19}
-    developmentDeck = collections.deque(c.developmentDeckList)
+    developmentDeck = deque(c.developmentDeckList)
 
     # A list of the hexes, assigned a resource and a numbered tile using the lists above
     hexes = [p.Hex(c.resourcesForHexes[x], c.oddsOrdered[x], c.resourceToColor[c.resourcesForHexes[x]], c.hexCenters[x])
@@ -259,14 +259,28 @@ def main():
             for player in playerList:
                 print("\n{}, it is now your turn.".format(player.name))
 
+                startMenu = OrderedDict([("Yes", True), ("", None), ("Quit Game", False)])
+                startTurn = None
+                while startTurn is None:
+                    startTurn = ui.present_menu(player, startMenu, "Ready?", menuSurface, comicsansLargeFont,
+                                            arialSmallFont)
+                if not startTurn:
+                    sys.exit(0)
+
+                player.count_points()
                 draw_player_hand(player, playerHandSurface, comicsansLargeFont, arialSmallFont)
                 pygame.display.update(playerHandSurface.get_rect())
+                draw_enemy_info(player, playerList, enemyInfoSurface, arialSmallFont)
+                pygame.display.update(enemyInfoSurface.get_rect())
 
                 # Initiate the pre-harvest menu
                 actionChoice = ui.present_menu(player, c.preHarvestMenu, "Pre-Harvest", menuSurface, comicsansLargeFont,
                                             arialSmallFont)
                 result = eval(actionChoice)
                 if not isinstance(result, int):
+                    player.count_points()
+                    draw_player_hand(player, playerHandSurface, comicsansLargeFont, arialSmallFont)
+                    draw_enemy_info(player, playerList, enemyInfoSurface, arialSmallFont)
                     result = roll_dice(player)
                 diceResult = result
 
@@ -275,8 +289,9 @@ def main():
                     # Discard cards for players with more than 7
                     for playerToCheck in playerList:
                         if sum(playerToCheck.cardsInHand.values()) > 7:
-                            halve_player_hand(playerToCheck, resourceDecks, playerHandSurface, menuSurface,
-                                              comicsansLargeFont, arialSmallFont)
+                            halve_player_hand(playerToCheck, playerList, resourceDecks, playerHandSurface, menuSurface,
+                                              enemyInfoSurface, comicsansLargeFont, arialSmallFont)
+                            draw_enemy_info(player, playerList, enemyInfoSurface, arialSmallFont)
                     playMade = False
                     while not playMade:
                         # Have the player make a play with the Robber
@@ -298,8 +313,6 @@ def main():
 
                 turnOver = False
                 while not turnOver:
-                    draw_enemy_info(player, playerList, enemyInfoSurface, arialSmallFont)
-                    pygame.display.update(enemyInfoSurface.get_rect())
                     draw_player_hand(player, playerHandSurface, comicsansLargeFont, arialSmallFont)
                     pygame.display.update(playerHandSurface.get_rect())
 #                    present_graphical_menu(player, postHarvestMenu, menuSurface, comicsansLargeFont, arialSmallFont)
@@ -307,6 +320,7 @@ def main():
                     actionChoice2 = ui.present_menu(player, c.postHarvestMenu, "Post-Harvest", menuSurface,
                                                  comicsansLargeFont, arialSmallFont)
                     result = eval(actionChoice2)
+                    player.count_points()
                     print(result[1])
                     if result[1] == "Turn is over.":
                         turnOver = True
@@ -321,14 +335,17 @@ def main():
                 sys.exit()
 
 
-def halve_player_hand(player, resourceDecks, handSurface, menuSurface, titleFont, infoFont):
+def halve_player_hand(player, playerList, resourceDecks, handSurface, menuSurface, enemySurface, titleFont, infoFont):
+    handSurface.fill(c.white)
+    ui.present_menu(player, {"Yes": 1}, "Ready?", menuSurface, titleFont, infoFont)
     draw_player_hand(player, handSurface, titleFont, infoFont)
+    draw_enemy_info(player, playerList, enemySurface, infoFont)
     pygame.display.update(handSurface.get_rect())
-    numToDiscard = int(round(sum(player.cardsInHand.values()) / 2, -0))
+    numToDiscard = int(sum(player.cardsInHand.values()) / 2.0)
     while numToDiscard > 0:
         resourcesInHand = sorted([resource for resource in player.cardsInHand.keys()
                                   if player.cardsInHand[resource] > 0])
-        resourceMenu = dict(zip(resourcesInHand, resourcesInHand))
+        resourceMenu = OrderedDict(zip(resourcesInHand, resourcesInHand))
         cardToDiscard = ui.present_menu(player, resourceMenu, "Discard {}".format(numToDiscard), menuSurface, titleFont,
                                      infoFont)
         player.discard_cards({cardToDiscard: 1}, resourceDecks)
@@ -399,9 +416,9 @@ def buy_development_card(player, resourceDecks, developmentDeck):
 # A function to take the player's input and play a monopoly card
 def play_monopoly_card(player, playerList, surface, titleFont, infoFont):
     print("{}, which resource do you want to monopolize?".format(player.name))
-    resourceMenu = dict(zip(c.resourceTypes, c.resourceTypes))
+    resourceMenu = OrderedDict(zip(c.resourceTypes, c.resourceTypes))
     resourceMenu["Cancel and return to main menu"] = None
-    choice = ui.present_menu(player, dict(zip(c.resourceTypes, c.resourceTypes)), "Take Which?", surface, titleFont,
+    choice = ui.present_menu(player, OrderedDict(zip(c.resourceTypes, c.resourceTypes)), "Take Which?", surface, titleFont,
                           infoFont)
     if choice is None:
         return (2, "{} cancelled the play. Returning.")
@@ -414,7 +431,7 @@ def play_yop_card(player, resourceDecks, surface, titleFont, infoFont):
     if "Year of Plenty" not in player.developmentCards:
         return (1, "{} does not have a Year of Plenty to play.".format(player.name))
     availableResources = [resource for resource in resourceDecks.keys() if resourceDecks[resource] > 0]
-    resourceMenu = dict(zip(availableResources, availableResources))
+    resourceMenu = OrderedDict(zip(availableResources, availableResources))
     resourceMenu["Cancel and return to main menu"] = None
     print("{}, choose the first resource to draw.".format(player.name))
     resource1 = ui.present_menu(player, resourceMenu, "Draw Which?", surface, titleFont, infoFont)
@@ -423,7 +440,7 @@ def play_yop_card(player, resourceDecks, surface, titleFont, infoFont):
     player.draw_cards({resource1: 1}, resourceDecks)
     player.developmentCards.remove("Year of Plenty")
     availableResources = [resource for resource in resourceDecks.keys() if resourceDecks[resource] > 0]
-    resourceMenu = dict(zip(availableResources, availableResources))
+    resourceMenu = OrderedDict(zip(availableResources, availableResources))
     resourceMenu["Don't draw a 2nd card"] = None
     print("{}, choose the second resource to draw.".format(player.name))
     resource2 = ui.present_menu(player, resourceMenu, "Draw Which?", surface, titleFont, infoFont)
@@ -490,10 +507,11 @@ def offer_trade():
 
 
 # A function to complete end-of-turn checks and move to the next player
-def end_turn(player):
+def end_turn(player, handSurface):
     # Count the player's points
     pointTotal = player.count_points()
     # Clear the screen
+    handSurface.fill(c.white)
     os.system('cls' if os.name == 'nt' else 'clear')
     return (0, "Turn is over.", pointTotal)
 
@@ -527,8 +545,8 @@ def use_robber(player, robber, hexes, boardSurface, playerKey, menuSurface, titl
         for plyr in playersAvailableToRob:
             playerMenu["{} ({} cards)".format(plyr.name, sum(plyr.cardsInHand.values()))] = plyr
         playerToRob = ui.present_menu(player, playerMenu, "Steal from", menuSurface, titleFont, infoFont)
-    if playerToRob is None:
-        return (2, "{} did not choose a player.".format(player.name))
+        if playerToRob is None:
+            return (2, "{} did not choose a player.".format(player.name))
     robberResult = robber.play(boardSurface, destinationHex, player, playerToRob)
     return (0, robberResult)
 

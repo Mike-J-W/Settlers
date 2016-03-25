@@ -1,5 +1,6 @@
 import math
 import random
+from collections import OrderedDict
 
 # Player Colors
 forestGreen = (34, 139, 34)
@@ -24,11 +25,11 @@ playerColors = {"red": playerRed, "blue": playerBlue, "green": playerGreen, "pur
                 "white": playerWhite, "orange": playerOrange}
 
 # The menus dictionary
-preHarvestMenu = dict(
+preHarvestMenu = OrderedDict(
     zip(["Harvest your resources (AKA roll the dice)", "Play a Knight (if possible) and then harvest resources"],
         ["roll_dice(player)", "play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey, menuSurface, "
                               "comicsansLargeFont, arialSmallFont)"]))
-postHarvestMenu = dict(
+postHarvestMenu = OrderedDict(
     zip(["Build a road", "Build a settlement", "Upgrade a settlement", "Buy a development card", "Play a knight",
          "Play a monopoly card", "Play a year of plenty card", "Play a road building card", "Make a maritime trade",
          "Offer a trade to players", "End turn"],
@@ -42,7 +43,7 @@ postHarvestMenu = dict(
          "play_yop_card(player, resourceDecks, menuSurface, titleFont, infoFont)", 
          "play_road_building(player, vertexList, longestRoad, resourceDecks, boardSurface, playerKey)", 
          "maritime_trade(player, resourceDecks, menuSurface, comicsansLargeFont, arialSmallFont)", "offer_trade()",
-         "end_turn(player)"]))
+         "end_turn(player, playerHandSurface)"]))
 
 # Set the piece and image sizes
 # The length of a side of a hex

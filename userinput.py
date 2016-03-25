@@ -165,7 +165,7 @@ def present_graphical_menu(player, menuDict, titleContent, surface, titleFont, i
     surfaceWidth = surface.get_width()
     titleLabel = titleFont.render(titleContent, 1, c.black)
     surface.blit(titleLabel, (25, 7))
-    menuOpts = sorted(list(menuDict.keys()))
+    menuOpts = list(menuDict.keys())
     menuOptSurfaces = [surface.subsurface(pygame.Rect((0, 47 + i*25), (surfaceWidth, 25)))
                        for i in range(len(menuOpts))]
     for i, optSurface in enumerate(menuOptSurfaces):
