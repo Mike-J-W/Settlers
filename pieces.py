@@ -216,7 +216,9 @@ class Player(object):
         self.unbuiltSettlements += [Settlement(2, self) for x in range(4)]
         self.builtRoads = []
         self.unbuiltRoads = [Road(self) for x in range(15)]
+        self.newDevelopmentCards = []
         self.developmentCards = []
+        self.hasPlayedKnight = False
         self.armySize = 0
         self.hasLongestRoad = False
         self.hasLargestArmy = False
@@ -253,6 +255,14 @@ class Player(object):
         if card in self.developmentCards:
             return True
         return False
+
+    def has_new_dev_card(self, card):
+        if card in self.newDevelopmentCards:
+            return True
+        return False
+
+    def get_dev_card_count(self, card):
+        return self.developmentCards.count(card) + self.newDevelopmentCards.count(card)
     
     def build_town(self, vertexToSettle, resourceDecks, surface):
         """After checks, places town on a vertex and changes player data accordingly, including discarding resources."""
@@ -290,7 +300,7 @@ class Player(object):
     def build_city(self, vertexToUpgrade, resourceDecks, surface):
         """After checks, puts city over a town and changes player data accordingly, including discarding resources."""
         if not self.can_afford(c.cityCost):
-            return (2, "{} does not have enough {} to upgrade a settlement".format(self.name, resource))
+            return (2, "{} cannot afford to upgrade a settlement".format(self.name))
         if not self.has_unbuilt_city:
             return (3, "{} does not have any cities left to play.".format(self.name))
         if vertexToUpgrade.settlement not in self.builtSettlements:
@@ -313,7 +323,7 @@ class Player(object):
     def build_road(self, vertex1, vertex2, longestRoad, resourceDecks, surface):
         """After checks, places road between vertices and changes player data accordingly."""
         if not self.can_afford(c.roadCost):
-            return (3, "{} does not have enough {} to build a road.".format(self.name, resource))
+            return (3, "{} cannot afford to build a road.".format(self.name))
         if not self.unbuiltRoads:
             return (2, "{} does not have any roads to build".format(self.name))
         if vertex1 not in vertex2.adjacentVertices:
@@ -352,11 +362,11 @@ class Player(object):
     def buy_development_card(self, developmentDeck, resourceDecks):
         """After checks, exchanges resources for development card and alters player data and card decks accordingly."""
         if not self.can_afford(c.developmentCardCost):
-            return (1, "{} does not have enough {} to buy a Development Card.".format(self.name, resource))
+            return (1, "{} cannot afford to buy a Development Card.".format(self.name))
         if len(developmentDeck) == 0:
             return (2, "The deck of Development Cards is empty.")
         newCard = developmentDeck.popleft()
-        self.developmentCards.append(newCard)
+        self.newDevelopmentCards.append(newCard)
         self.discard_resources(c.developmentCardCost, resourceDecks)
         return (0, "Success! {} bought a {}.".format(self.name, newCard))
 
@@ -364,6 +374,9 @@ class Player(object):
         if not self.has_dev_card(card):
             return (1, "{} does not have a {} card to consume.".format(self.name, card))
         self.developmentCards.remove(card)
+        if card == "Knight":
+            self.armySize += 1
+            self.hasPlayedKnight = True
         return (0, "{} consumed a {} card.".format(self.name, card))
 
     def offer_trade(self, cardsOffering, cardsRequesting, playersNotified):
@@ -459,11 +472,12 @@ class LongestRoad(object):
                 roadLength = self.explore_players_roads(player, road, 0, [], "")
                 if roadLength > maxRoadLength:
                     maxRoadLength = roadLength
-            if maxRoadLength > 3 and maxRoadLength > newSize:
+            if maxRoadLength > 4 and maxRoadLength > newSize:
                 newOwner = player
                 newSize = maxRoadLength
         if newOwner != self.owner:
-            self.owner.hasLongestRoad = False
+            if self.owner is not None:
+                self.owner.hasLongestRoad = False
             self.owner = newOwner
             self.owner.hasLongestRoad = True
             self.size = newSize

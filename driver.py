@@ -314,6 +314,7 @@ def main():
                 turnOver = False
                 while not turnOver:
                     draw_player_hand(player, playerHandSurface, comicsansLargeFont, arialSmallFont)
+                    draw_enemy_info(player, playerList, enemyInfoSurface, arialSmallFont)
                     pygame.display.update(playerHandSurface.get_rect())
 #                    present_graphical_menu(player, postHarvestMenu, menuSurface, comicsansLargeFont, arialSmallFont)
 #                    pygame.display.update(menuSurface.get_rect())
@@ -426,8 +427,10 @@ def buy_development_card(player, resourceDecks, developmentDeck):
 
 
 # A function to take the player's input and play a monopoly card
-def play_monopoly_card(player, playerList, surface, titleFont, infoFont):
+def play_monopoly_card(player, resourceDecks, playerList, surface, titleFont, infoFont):
     if not player.has_dev_card("Monopoly"):
+        if player.has_new_dev_card("Monopoly"):
+            return (1, "Cannot play a Development Card on the turn it's bought.")
         return (1, "{} does not have a Monopoly card to play.".format(player.name))
     print("{}, which resource do you want to monopolize?".format(player.name))
     resourceMenu = OrderedDict(zip(c.resourceTypes, c.resourceTypes))
@@ -440,7 +443,7 @@ def play_monopoly_card(player, playerList, surface, titleFont, infoFont):
     enemyList = [person for person in playerList if person != player]
     for enemy in enemyList:
         enemyResourceCount = enemy.cardsInHand[choice]
-        enemy.discard_resources({choice: enemyResourceCount})
+        enemy.discard_resources({choice: enemyResourceCount}, resourceDecks)
         player.draw_resources({choice: enemyResourceCount})
     gain = player.cardsInHand[choice] - startCount
     return (0, "{} drew {} {} from the other players.".format(player.name, gain, choice))
@@ -449,6 +452,8 @@ def play_monopoly_card(player, playerList, surface, titleFont, infoFont):
 # A function to take the player's input and play a year of plenty card
 def play_yop_card(player, resourceDecks, surface, titleFont, infoFont):
     if not player.has_dev_card("Year of Plenty"):
+        if player.has_new_dev_card("Year of Plenty"):
+            return (1, "Cannot play a Development Card on the turn it's bought.")
         return (1, "{} does not have a Year of Plenty to play.".format(player.name))
     availableResources = [resource for resource in resourceDecks.keys() if resourceDecks[resource] > 0]
     resourceMenu = OrderedDict(zip(availableResources, availableResources))
@@ -473,6 +478,8 @@ def play_yop_card(player, resourceDecks, surface, titleFont, infoFont):
 # A function to take the player's input and play a road building card
 def play_road_building(player, vertexList, longestRoad, resourceDecks, surface, playerKey):
     if not player.has_dev_card("Road Building"):
+        if player.has_new_dev_card("Road Building"):
+            return (1, "Cannot play a Development Card on the turn it's bought.")
         return (1, "{} does not have a Road Building to play.".format(player.name))
     buildResult = build_road(player, vertexList, longestRoad, resourceDecks, surface, playerKey)
     if buildResult[0] == 1:
@@ -489,15 +496,18 @@ def play_road_building(player, vertexList, longestRoad, resourceDecks, surface, 
 # Function that deals with the choice to play the knight first
 # Takes the player in question
 def play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey, menuSurface, titleFont, infoFont):
+    if player.hasPlayedKnight:
+        return (1, "{} has already played a Knight this turn.".format(player.name))
     if not player.has_dev_card("Knight"):
-        return (1, "{} does not have a Knight to play.".format(player.name))
+        if player.has_new_dev_card("Knight"):
+            return (2, "Cannot play a Development Card on the turn it's bought.")
+        return (2, "{} does not have a Knight to play.".format(player.name))
     # Ask the player how they'd like to use the Robber
     robberPlay = use_robber(player, robber, hexes, boardSurface, playerKey, menuSurface, titleFont, infoFont)
     if robberPlay[0] != 0:
-        return (2, "{} chose not to play the Knight.".format(player.name))
+        return (3, "{} chose not to play the Knight.".format(player.name))
     # Attempt to make that play
-    self.armySize += 1
-    self.developmentCards.remove("Knight")
+    player.consume_dev_card("Knight")
     largestArmy.determine_owner()
     pygame.display.update()
     return (0, robberPlay[1])
@@ -540,30 +550,35 @@ def use_robber(player, robber, hexes, boardSurface, playerKey, menuSurface, titl
 
 # A function to take the player's input and make a maritime trade
 def maritime_trade(player, resourceDecks, surface, titleFont, infoFont):
-    tradeAwayMenu = {"Cancel and return to main menu": None}
+    tradeAwayList = []
     for resource in c.resourceTypes:
         ratio = player.tradeRatios[resource]
         if player.cardsInHand[resource] >= ratio:
-            tradeAwayMenu["{} at {} to 1".format(resource, ratio)] = resource
-
+            tradeAwayList.append(("{} at {} to 1".format(resource, ratio), resource))
+    tradeAwayList.append(("Cancel and return to main menu", None))
+    tradeAwayMenu = OrderedDict(tradeAwayList)
     print("Please select the resource you would like to maritime trade: ")
     resourceTrading = ui.present_menu(player, tradeAwayMenu, "Trade Away", surface, titleFont, infoFont)
     if resourceTrading is None:
         return (1, "{} chose not to trade.".format(player.name))
     tradeRatio = player.tradeRatios[resourceTrading]
-    tradeForMenu = {"Cancel and return to main menu": None}
+    tradeForList = []
     for resource in c.resourceTypes:
         if resource is not resourceTrading and resourceDecks[resource] > 0:
-            tradeForMenu[resource] = resource
+            tradeForList.append((resource, resource))
+    tradeForList.append(("Cancel and return to main menu", None))
+    tradeForMenu = OrderedDict(tradeForList)
     resourceGetting = ui.present_menu(player, tradeForMenu, "Trade For", surface, titleFont, infoFont)
     if resourceGetting is None:
         return (1, "{} chose not to trade.".format(player.name))
-    tradeAmountMenu = {"Cancel and return to main menu": None}
+    tradeAmountList = []
     counter = 1
     while counter * tradeRatio <= player.cardsInHand[resourceTrading] and counter <= resourceDecks[resourceGetting]:
-        tradeAmountMenu["{} {} for {} {}".format(counter * tradeRatio, resourceTrading, counter, resourceGetting)] = \
-            counter
+        tradeAmountList.append(("{} {} for {} {}".format(counter * tradeRatio, resourceTrading, counter,
+                                                         resourceGetting), counter))
         counter += 1
+    tradeAmountList.append(("Cancel and return to main menu", None))
+    tradeAmountMenu = OrderedDict(tradeAmountList)
     tradeQuantity = ui.present_menu(player, tradeAmountMenu, "Trade", surface, titleFont, infoFont)
     if tradeQuantity is None:
         return (1, "{} chose not to trade.".format(player.name))
@@ -575,13 +590,16 @@ def maritime_trade(player, resourceDecks, surface, titleFont, infoFont):
 
 # A function to take th player's input and offer a trade to other players
 def offer_trade():
-    pass
+    return (1, "Function not available.")
 
 
 # A function to complete end-of-turn checks and move to the next player
 def end_turn(player, handSurface):
     # Count the player's points
     pointTotal = player.count_points()
+    player.hasPlayedKnight = False
+    player.developmentCards += player.newDevelopmentCards
+    player.newDevelopmentCards = []
     # Clear the screen
     handSurface.fill(c.white)
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -617,10 +635,10 @@ def draw_player_hand(player, surface, titleFont, infoFont):
         label = infoFont.render(" - {}".format(player.cardsInHand[resource]), 1, c.black)
         surface.blit(label, (x+16, y))
     for i, card in enumerate(["Road Building", "Year of Plenty", "Victory Point"]):
-        cardLabel = infoFont.render("{}: {}".format(card, player.developmentCards.count(card)), 1, c.black)
+        cardLabel = infoFont.render("{}: {}".format(card, player.get_dev_card_count(card)), 1, c.black)
         surface.blit(cardLabel, (15,100 + 20 * i))
     for i, card in enumerate(["Monopoly", "Knight"]):
-        cardLabel = infoFont.render("{}: {}".format(card, player.developmentCards.count(card)), 1, c.black)
+        cardLabel = infoFont.render("{}: {}".format(card, player.get_dev_card_count(card)), 1, c.black)
         surface.blit(cardLabel, (135,100 + 20 * i))
     armyLabel = infoFont.render("Army: {}".format(player.armySize), 1, c.black)
     surface.blit(armyLabel, (135, 140))

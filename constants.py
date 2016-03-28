@@ -39,9 +39,9 @@ postHarvestMenu = OrderedDict(
          "buy_development_card(player, resourceDecks, developmentDeck)", 
          "play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey, menuSurface, comicsansLargeFont, "
          "arialSmallFont)",
-         "play_monopoly(player, playerList, menuSurface, titleFont, infoFont)",
-         "play_yop_card(player, resourceDecks, menuSurface, titleFont, infoFont)", 
-         "play_road_building(player, vertexList, longestRoad, resourceDecks, boardSurface, playerKey)", 
+         "play_monopoly_card(player, resourceDecks, playerList, menuSurface, comicsansLargeFont, arialSmallFont)",
+         "play_yop_card(player, resourceDecks, menuSurface, comicsansLargeFont, arialSmallFont)",
+         "play_road_building(player, vertices, longestRoad, resourceDecks, boardSurface, playerKey)",
          "maritime_trade(player, resourceDecks, menuSurface, comicsansLargeFont, arialSmallFont)", "offer_trade()",
          "end_turn(player, playerHandSurface)"]))
 
