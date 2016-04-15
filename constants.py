@@ -17,12 +17,12 @@ playerRed = (213, 5, 46)
 playerBlue = (102, 207, 245)
 playerGreen = (90, 206, 48)
 playerPurple = (149, 58, 172)
-playerWhite = (255, 255, 255)
 playerOrange = (255, 182, 71)
 
 # Set the colors
 playerColors = {"red": playerRed, "blue": playerBlue, "green": playerGreen, "purple": playerPurple,
-                "white": playerWhite, "orange": playerOrange}
+                "white": white, "orange": playerOrange}
+playerColorsList = [playerBlue, playerGreen, playerOrange, white, playerPurple, playerRed]
 
 # The menus dictionary
 preHarvestMenu = OrderedDict(
@@ -63,7 +63,8 @@ oceanSize = (oceanWidth, oceanHeight)
 gameMenuWidth = 240
 gameEventLogWidth = 240
 # The size of the window that is opened
-screenSize = (oceanWidth + gameEventLogWidth + gameMenuWidth, oceanHeight)
+screenWidth = oceanWidth + gameEventLogWidth + gameMenuWidth
+screenSize = (screenWidth, oceanHeight)
 
 # The resource and card variables
 lumber = "Wood"

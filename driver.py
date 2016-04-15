@@ -108,40 +108,8 @@ def main():
     # Create the Robber
     robber = p.Robber(hexes[c.desertIndex])
 
-    # Instantiate the players
-    # The game expects 4 players and a name, a color, and an AI status (True or False) for each
-    if len(sys.argv) != 13:
-        print("Wrong number of arguments (name, color, isAI four times)")
-        sys.exit()
-    # Check that the colors given are in the player-color dictionary
-    for inputColor in sys.argv[2::3]:
-        if inputColor not in c.playerColors:
-            print("\"{}\" is not a valid color.  The options are: {}".format(
-                inputColor, ", ".join(c.playerColors.keys())))
-            sys.exit()
-    # Default AI status for each player is False - assumes the players are human
-    p1AI = False
-    p2AI = False
-    p3AI = False
-    p4AI = False
-    # The options that signify the player is an AI
-    trueOpts = ["True", "true", "T", "t"]
-    # Check if the player is an AI
-    if sys.argv[3] in trueOpts:
-        p1AI = True
     # Instantiate a player with their name, color, AI status, and the sizes of their pieces
-    player1 = p.Player(sys.argv[1], c.playerColors[sys.argv[2]], p1AI)
-    if sys.argv[6] in trueOpts:
-        p2AI = True
-    player2 = p.Player(sys.argv[4], c.playerColors[sys.argv[5]], p2AI)
-    if sys.argv[9] in trueOpts:
-        p3AI = True
-    player3 = p.Player(sys.argv[7], c.playerColors[sys.argv[8]], p3AI)
-    if sys.argv[12] in trueOpts:
-        p4AI = True
-    player4 = p.Player(sys.argv[10], c.playerColors[sys.argv[11]], p4AI)
-    # Construct a list of the players
-    playerList = [player1, player2, player3, player4]
+    playerList = ui.create_players()
     # Give the players enough cards to build their first settlements and roads
     # TODO EDITED THIS TO TEST MARITIME TRADING & BUILDING
     startingHand = {c.grain: 4, c.wool: 2, c.clay: 4, c.lumber: 4, c.ore: 3}

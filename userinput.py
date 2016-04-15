@@ -1,5 +1,6 @@
 import pygame
 import constants as c
+import pieces as p
 import geometricfunctions as gf
 
 
@@ -10,7 +11,10 @@ def get_rect_from_player(player, rectList):
         # Make sure no other events are on the queue
         pygame.event.clear()
         # Prompt the user for a click and wait for two events
-        print("{} please click a option.".format(player.name))
+        if player:
+            print("{} please click an option.".format(player.name))
+        else:
+            print("Please click an option.")
         chosenRect = None
         eventA = pygame.event.wait()
         eventB = pygame.event.wait()
@@ -176,4 +180,129 @@ def present_graphical_menu(player, menuDict, titleContent, surface, titleFont, i
     chosenRect = get_rect_from_player(player, rectList)
     chosenOpt = menuOpts[rectList.index(chosenRect)]
     return chosenOpt
+
+
+def create_players():
+    # Pygame initialization
+    pygame.init()
+    # opens the window with the size specifications given
+    inputScreen = pygame.display.set_mode(c.screenSize)
+    inputScreen.fill(c.white)
+    subsurfaceHeight = c.oceanHeight / 5
+    interiorSpacing = 4
+    exteriorSpacing = 5
+    baseY = 25
+    typeX = 50
+    typeSpacing = 30
+    nameX = 250
+    nameBoxSize = (150, 30)
+    colorX = 500
+    availableColors = list(c.playerColorsList)
+    arialFont = pygame.font.SysFont("Arial", 15)
+    pygame.event.set_allowed(None)
+    pygame.event.set_allowed([pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN, pygame.KEYDOWN, pygame.KEYUP, pygame.QUIT])
+    playerList = []
+
+    for playerI in range(4):
+        adjustedY = baseY + playerI * subsurfaceHeight
+
+        typeMessage = arialFont.render("Choose the player type", 1, c.black)
+        inputScreen.blit(typeMessage, (typeX, adjustedY))
+        humanText = arialFont.render("Human", 1, c.black)
+        humanButton = pygame.Rect((typeX, adjustedY + typeMessage.get_size()[1] + exteriorSpacing),
+                                  (humanText.get_size()[0] + interiorSpacing * 2,
+                                   humanText.get_size()[1] + interiorSpacing * 2))
+        pygame.draw.rect(inputScreen, c.black, humanButton, 1)
+        inputScreen.blit(humanText, (typeX + interiorSpacing,
+                                       adjustedY + typeMessage.get_size()[1] + exteriorSpacing + interiorSpacing))
+        aiText = arialFont.render("AI", 1, c.black)
+        aiButton = pygame.Rect((typeX + humanText.get_size()[0] + typeSpacing,
+                                adjustedY + typeMessage.get_size()[1] + exteriorSpacing),
+                               (aiText.get_size()[0] + interiorSpacing * 2, aiText.get_size()[1] + interiorSpacing * 2))
+        pygame.draw.rect(inputScreen, c.black, aiButton, 1)
+        inputScreen.blit(aiText, (typeX + humanText.get_size()[0] + typeSpacing + interiorSpacing,
+                                    adjustedY + typeMessage.get_size()[1] + exteriorSpacing + interiorSpacing))
+        pygame.display.flip()
+        chosenButton = get_rect_from_player(None, [humanButton, aiButton])
+        if chosenButton == humanButton:
+            playerIsAI = False
+        else:
+            playerIsAI = True
+
+        nameMessage = arialFont.render("Enter a name", 1, c.black)
+        inputScreen.blit(nameMessage, (nameX, adjustedY))
+        textBox = pygame.Rect((nameX, adjustedY + nameMessage.get_size()[1] + exteriorSpacing), nameBoxSize)
+        pygame.draw.rect(inputScreen, c.black, textBox, 1)
+        arialFont.set_bold(True)
+        okText = arialFont.render("OK", 1, c.forestGreen)
+        okButton = pygame.Rect((nameX, adjustedY + nameMessage.get_size()[1] + nameBoxSize[1] + exteriorSpacing * 2),
+                               (okText.get_size()[0] + interiorSpacing * 2, okText.get_size()[1] + interiorSpacing * 2))
+        pygame.draw.rect(inputScreen, c.black, okButton, 1)
+        inputScreen.blit(okText, (nameX + interiorSpacing,
+                                    adjustedY + nameMessage.get_size()[1] + nameBoxSize[1] + exteriorSpacing * 2 +
+                                    interiorSpacing))
+        arialFont.set_bold(False)
+        pygame.display.flip()
+        playerName = ""
+        clickedOK = False
+        lastEvent = None
+        pygame.event.clear()
+        while not clickedOK:
+            thisEvent = pygame.event.wait()
+            if thisEvent.type == pygame.MOUSEBUTTONDOWN:
+                pass
+            elif thisEvent.type == pygame.MOUSEBUTTONUP and lastEvent and lastEvent.type == pygame.MOUSEBUTTONDOWN:
+                downPosition = thisEvent.__dict__['pos']
+                upPosition = lastEvent.__dict__['pos']
+                if gf.is_within_rect(okButton, downPosition) and gf.is_within_rect(okButton, upPosition):
+                    clickedOK = True
+            elif thisEvent.type == pygame.KEYDOWN:
+                pass
+            elif thisEvent.type == pygame.KEYUP and lastEvent and lastEvent.type == pygame.KEYDOWN:
+                if thisEvent.__dict__['key'] == lastEvent.__dict__['key']:
+                    asciiValue = thisEvent.__dict__['key']
+                    if asciiValue >= 97 and asciiValue <= 122:
+                        modValue = thisEvent.__dict__['mod']
+                        print(thisEvent.__dict__)
+                        if modValue == 1 or modValue == 2 or modValue == 8192:
+                            asciiValue -= 32
+                        char = chr(asciiValue)
+                        playerName += char
+                        pygame.draw.rect(inputScreen, c.white, textBox, 0)
+                        pygame.draw.rect(inputScreen, c.black, textBox, 1)
+                        nameLabel = arialFont.render(playerName, 1, c.black)
+                        inputScreen.blit(nameLabel, (nameX + interiorSpacing, adjustedY + nameMessage.get_size()[1] +
+                                                       exteriorSpacing + interiorSpacing))
+                        pygame.display.flip()
+                    elif asciiValue == 8:
+                        playerName = playerName[:-1]
+                        pygame.draw.rect(inputScreen, c.white, textBox, 0)
+                        pygame.draw.rect(inputScreen, c.black, textBox, 1)
+                        nameLabel = arialFont.render(playerName, 1, c.black)
+                        inputScreen.blit(nameLabel, (nameX + interiorSpacing, adjustedY + nameMessage.get_size()[1] +
+                                                       exteriorSpacing + interiorSpacing))
+                        pygame.display.flip()
+                    elif asciiValue == 13:
+                        clickedOK = True
+            lastEvent = thisEvent
+
+        colorMessage = arialFont.render("Choose a color", 1, c.black)
+        inputScreen.blit(colorMessage, (colorX, adjustedY))
+        defaultColorBox = pygame.Rect((colorX, adjustedY + colorMessage.get_size()[1] + exteriorSpacing),
+                                      (c.colorBoxEdgeLength, c.colorBoxEdgeLength))
+        colorBoxes = [defaultColorBox.move(i * 20, 0) for i in range(len(availableColors))]
+        for i, color in enumerate(availableColors):
+            if color == c.white:
+                pygame.draw.rect(inputScreen, c.black, colorBoxes[i], 1)
+            else:
+                pygame.draw.rect(inputScreen, color, colorBoxes[i], 0)
+        pygame.display.flip()
+        chosenBox = get_rect_from_player(None, colorBoxes)
+        playerColor = availableColors.pop(colorBoxes.index(chosenBox))
+
+        playerList.append(p.Player(playerName, playerColor, playerIsAI))
+
+    pygame.quit()
+    return playerList
+
 
