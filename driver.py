@@ -1,6 +1,5 @@
 import random
 import pygame
-import time
 import sys
 import os
 from collections import deque, OrderedDict
@@ -139,7 +138,7 @@ def main():
     playerHandSurface.fill(c.white)
     menuSurface = screen.subsurface((c.oceanWidth, 226), (c.gameMenuWidth, c.oceanHeight-226))
     menuSurface.fill(c.white)
-    enemyInfoSurface = screen.subsurface((c.oceanWidth + c.gameMenuWidth + 1, 0), (c.gameEventLogWidth -1, 225))
+    enemyInfoSurface = screen.subsurface((c.oceanWidth + c.gameMenuWidth + 1, 0), (c.gameEventLogWidth - 1, 225))
     enemyInfoSurface.fill(c.white)
     logSurface = screen.subsurface((c.oceanWidth + c.gameMenuWidth + 1, 226), (c.gameEventLogWidth - 1,
                                                                                c.oceanHeight - 226))
@@ -199,7 +198,7 @@ def main():
         if not initialSettlementsBuilt:
             print("Each player must build their first settlements and roads.")
             # Loop through the shuffled player list forwards once and then backwards once
-            # playerList[::-1]:  TODO NEEED TO CHANGE BACK!!!
+            # playerList[::-1]:  TODO NEED TO CHANGE BACK!!!
             for player in playerList:
                 # A flag to track whether the player has completed a valid action
                 validAction = False
@@ -227,11 +226,10 @@ def main():
             for player in playerList:
                 print("\n{}, it is now your turn.".format(player.name))
 
-                startMenu = OrderedDict([("Yes", True), ("", None), ("Quit Game", False)])
                 startTurn = None
                 while startTurn is None:
-                    startTurn = ui.present_menu(player, startMenu, "Ready?", menuSurface, comicsansLargeFont,
-                                            arialSmallFont)
+                    startTurn = ui.present_menu(player, c.startMenu, "Ready?", menuSurface, comicsansLargeFont,
+                                                arialSmallFont)
                 if not startTurn:
                     sys.exit(0)
 
@@ -243,7 +241,7 @@ def main():
 
                 # Initiate the pre-harvest menu
                 actionChoice = ui.present_menu(player, c.preHarvestMenu, "Pre-Harvest", menuSurface, comicsansLargeFont,
-                                            arialSmallFont)
+                                               arialSmallFont)
                 result = eval(actionChoice)
                 if not isinstance(result, int):
                     player.count_points()
@@ -264,7 +262,7 @@ def main():
                     while not playMade:
                         # Have the player make a play with the Robber
                         robberPlay = use_robber(player, robber, hexes, boardSurface, playerKey, menuSurface,
-                                                                 comicsansLargeFont, arialSmallFont)
+                                                comicsansLargeFont, arialSmallFont)
                         if robberPlay[0] == 0:
                             playMade = True
                     # Update the screen to show the new location of the Robber
@@ -284,10 +282,8 @@ def main():
                     draw_player_hand(player, playerHandSurface, comicsansLargeFont, arialSmallFont)
                     draw_enemy_info(player, playerList, enemyInfoSurface, arialSmallFont)
                     pygame.display.update(playerHandSurface.get_rect())
-#                    present_graphical_menu(player, postHarvestMenu, menuSurface, comicsansLargeFont, arialSmallFont)
-#                    pygame.display.update(menuSurface.get_rect())
                     actionChoice2 = ui.present_menu(player, c.postHarvestMenu, "Post-Harvest", menuSurface,
-                                                 comicsansLargeFont, arialSmallFont)
+                                                    comicsansLargeFont, arialSmallFont)
                     result = eval(actionChoice2)
                     player.count_points()
                     print(result[1])
@@ -316,7 +312,7 @@ def halve_player_hand(player, playerList, resourceDecks, handSurface, menuSurfac
                                   if player.cardsInHand[resource] > 0])
         resourceMenu = OrderedDict(zip(resourcesInHand, resourcesInHand))
         cardToDiscard = ui.present_menu(player, resourceMenu, "Discard {}".format(numToDiscard), menuSurface, titleFont,
-                                     infoFont)
+                                        infoFont)
         player.discard_resources({cardToDiscard: 1}, resourceDecks)
         draw_player_hand(player, handSurface, titleFont, infoFont)
         pygame.display.update(handSurface.get_rect())
@@ -388,7 +384,7 @@ def upgrade_settlement(player, vertexList, resourceDecks, surface, playerKey):
     return (0, "Settlement upgraded!")
 
 
-# A function to buy a devlopment card for a player
+# A function to buy a development card for a player
 def buy_development_card(player, resourceDecks, developmentDeck):
     buyResult = player.buy_development_card(developmentDeck, resourceDecks)
     return buyResult
@@ -403,8 +399,8 @@ def play_monopoly_card(player, resourceDecks, playerList, surface, titleFont, in
     print("{}, which resource do you want to monopolize?".format(player.name))
     resourceMenu = OrderedDict(zip(c.resourceTypes, c.resourceTypes))
     resourceMenu["Cancel and return to main menu"] = None
-    choice = ui.present_menu(player, OrderedDict(zip(c.resourceTypes, c.resourceTypes)), "Take Which?", surface, titleFont,
-                          infoFont)
+    choice = ui.present_menu(player, OrderedDict(zip(c.resourceTypes, c.resourceTypes)), "Take Which?", surface,
+                             titleFont, infoFont)
     if choice is None:
         return (2, "{} cancelled the play. Returning.")
     startCount = player.cardsInHand[choice]
@@ -604,16 +600,16 @@ def draw_player_hand(player, surface, titleFont, infoFont):
         surface.blit(label, (x+16, y))
     for i, card in enumerate(["Road Building", "Year of Plenty", "Victory Point"]):
         cardLabel = infoFont.render("{}: {}".format(card, player.get_dev_card_count(card)), 1, c.black)
-        surface.blit(cardLabel, (15,100 + 20 * i))
+        surface.blit(cardLabel, (15, 100 + 20 * i))
     for i, card in enumerate(["Monopoly", "Knight"]):
         cardLabel = infoFont.render("{}: {}".format(card, player.get_dev_card_count(card)), 1, c.black)
-        surface.blit(cardLabel, (135,100 + 20 * i))
+        surface.blit(cardLabel, (135, 100 + 20 * i))
     armyLabel = infoFont.render("Army: {}".format(player.armySize), 1, c.black)
     surface.blit(armyLabel, (135, 140))
     largestArmyLabel = infoFont.render("Largest Army: {}".format(player.hasLargestArmy), 1, c.black)
     surface.blit(largestArmyLabel, (15, 160))
-    longestRaodLabel = infoFont.render("Longest Road: {}".format(player.hasLongestRoad), 1, c.black)
-    surface.blit(longestRaodLabel, (15, 180))
+    longestRoadLabel = infoFont.render("Longest Road: {}".format(player.hasLongestRoad), 1, c.black)
+    surface.blit(longestRoadLabel, (15, 180))
     pointsLabel = infoFont.render("Total Points: {}".format(player.points), 1, c.black)
     surface.blit(pointsLabel, (15, 200))
 

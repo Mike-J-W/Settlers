@@ -25,6 +25,7 @@ playerColors = {"red": playerRed, "blue": playerBlue, "green": playerGreen, "pur
 playerColorsList = [playerBlue, playerGreen, playerOrange, white, playerPurple, playerRed]
 
 # The menus dictionary
+startMenu = OrderedDict([("Yes", True), ("", None), ("Quit Game", False)])
 preHarvestMenu = OrderedDict(
     zip(["Harvest your resources (AKA roll the dice)", "Play a Knight (if possible) and then harvest resources"],
         ["roll_dice(player)", "play_knight(player, robber, hexes, largestArmy, boardSurface, playerKey, menuSurface, "

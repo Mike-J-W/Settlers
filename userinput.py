@@ -24,9 +24,9 @@ def get_rect_from_player(player, rectList):
             posB = eventB.__dict__['pos']
             # If the mouse actions (pressed down, released) were no more than 10 pixels apart, move forward
             if gf.pp_distance(posA, posB) < 10:
-                # Loop through the rects to see if the click ocurred inside one
+                # Loop through the rects to see if the click occurred inside one
                 for rect in rectList:
-                    # If both mouse actions ocurred inside the current hex, move forward
+                    # If both mouse actions occurred inside the current hex, move forward
                     if gf.is_within_rect(rect, posA) and gf.is_within_rect(rect, posB):
                         # Record the rect, switch the boolean to end the while loop, and break the rect loop
                         chosenRect = rect
@@ -62,7 +62,7 @@ def get_vertex_from_player(player, vertexList, playerKey):
                 posB = eventB.__dict__['pos']
                 # Get the coordinates of each vertex on the board
                 vertexCoords = [v.coordinates for v in vertexList]
-                # Get coordinates of the vetices closest to where the mouse was pressed down and where it was released
+                # Get coordinates of the vertices closest to where the mouse was pressed down and where it was released
                 verCoordA = gf.get_closest_point(vertexCoords, posA)
                 verCoordB = gf.get_closest_point(vertexCoords, posB)
                 # If the two coordinates are the same and both events happened within 10 pixels each other, move forward
@@ -76,7 +76,7 @@ def get_vertex_from_player(player, vertexList, playerKey):
                         # If the mouse action (pressed down, released) happened within 10 pixels of
                         # the closest vertex, move forward
                         if verCoordA[1] <= 10 and verCoordB[1] <= 10:
-                            # With all condiitions satisfied, find the vertex corresponding to the coordinates found
+                            # With all conditions satisfied, find the vertex corresponding to the coordinates found
                             closestVertex = vertexList[vertexCoords.index(verCoordA[0])]
                             validClick = True
                         else:
@@ -115,9 +115,9 @@ def get_hex_from_player(player, hexList, playerKey):
                         validClick = True
                         print("{} did not choose a hex.".format(player.name))
                     else:
-                        # Loop through the hexes to see if the click ocurred inside one
+                        # Loop through the hexes to see if the click occurred inside one
                         for hexTile in hexList:
-                            # If both mouse actions ocurred inside the current hex, move forward
+                            # If both mouse actions occurred inside the current hex, move forward
                             if gf.is_within_hex(hexTile, posA) and gf.is_within_hex(hexTile, posB):
                                 # Record the hex, switch the boolean to end the while loop, and break the hex loop
                                 chosenHex = hexTile
@@ -138,28 +138,6 @@ def present_menu(player, menuDict, titleContent, surface, titleFont, infoFont):
         choice = menuDict[chosenOpt]
         surface.fill(c.white)
         pygame.display.update(surface.get_rect())
-        '''
-        print("The available options are:")
-        menuOpts = sorted(list(menuDict.keys()))
-        for i, e in enumerate(menuOpts):
-            print("\t{}\t{}".format(i, e))
-
-        validOptionFound = False
-        while not validOptionFound:
-            option = input("Please choose an option: ")
-            try:
-                optIndex = int(option)
-            except:
-                print("not an integer.  try again")
-                continue
-            try:
-                optKey = menuOpts[optIndex]
-            except:
-                print("not a valid option.  try again")
-                continue
-            choice = menuDict[optKey]
-            validOptionFound = True
-        '''
         return choice
 
 
@@ -206,6 +184,7 @@ def create_players():
     for playerI in range(4):
         adjustedY = baseY + playerI * subsurfaceHeight
 
+        '''
         typeMessage = arialFont.render("Choose the player type", 1, c.black)
         inputScreen.blit(typeMessage, (typeX, adjustedY))
         humanText = arialFont.render("Human", 1, c.black)
@@ -228,6 +207,8 @@ def create_players():
             playerIsAI = False
         else:
             playerIsAI = True
+        '''
+        playerIsAI = False
 
         nameMessage = arialFont.render("Enter a name", 1, c.black)
         inputScreen.blit(nameMessage, (nameX, adjustedY))
@@ -239,8 +220,8 @@ def create_players():
                                (okText.get_size()[0] + interiorSpacing * 2, okText.get_size()[1] + interiorSpacing * 2))
         pygame.draw.rect(inputScreen, c.black, okButton, 1)
         inputScreen.blit(okText, (nameX + interiorSpacing,
-                                    adjustedY + nameMessage.get_size()[1] + nameBoxSize[1] + exteriorSpacing * 2 +
-                                    interiorSpacing))
+                                  adjustedY + nameMessage.get_size()[1] + nameBoxSize[1] + exteriorSpacing * 2 +
+                                  interiorSpacing))
         arialFont.set_bold(False)
         pygame.display.flip()
         playerName = ""
@@ -261,7 +242,7 @@ def create_players():
             elif thisEvent.type == pygame.KEYUP and lastEvent and lastEvent.type == pygame.KEYDOWN:
                 if thisEvent.__dict__['key'] == lastEvent.__dict__['key']:
                     asciiValue = thisEvent.__dict__['key']
-                    if asciiValue >= 97 and asciiValue <= 122:
+                    if 97 <= asciiValue <= 122:
                         modValue = thisEvent.__dict__['mod']
                         print(thisEvent.__dict__)
                         if modValue == 1 or modValue == 2 or modValue == 8192:
@@ -272,7 +253,7 @@ def create_players():
                         pygame.draw.rect(inputScreen, c.black, textBox, 1)
                         nameLabel = arialFont.render(playerName, 1, c.black)
                         inputScreen.blit(nameLabel, (nameX + interiorSpacing, adjustedY + nameMessage.get_size()[1] +
-                                                       exteriorSpacing + interiorSpacing))
+                                                     exteriorSpacing + interiorSpacing))
                         pygame.display.flip()
                     elif asciiValue == 8:
                         playerName = playerName[:-1]
@@ -280,7 +261,7 @@ def create_players():
                         pygame.draw.rect(inputScreen, c.black, textBox, 1)
                         nameLabel = arialFont.render(playerName, 1, c.black)
                         inputScreen.blit(nameLabel, (nameX + interiorSpacing, adjustedY + nameMessage.get_size()[1] +
-                                                       exteriorSpacing + interiorSpacing))
+                                                     exteriorSpacing + interiorSpacing))
                         pygame.display.flip()
                     elif asciiValue == 13:
                         clickedOK = True

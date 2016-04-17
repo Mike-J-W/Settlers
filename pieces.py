@@ -1,4 +1,4 @@
-"""Contains the Class definitions for all persistent objects in the game"""
+"""Define the pieces and other persistent objects in the game"""
 
 import math
 import random
@@ -6,10 +6,20 @@ import pygame
 import constants as c
 
 
-# A hexagonal tile that composes the game board
 class Hex(object):
-    """Defined by its location, owner, resource, and odds for harvest.
-       Also knows its size and whether it has the Robber."""
+    """A hexagonal tile piece that forms part of the game board.
+
+    :param resource: The resource type yielded by the tile during harvest
+    :param odds: The dice roll that triggers a harvest of this tile's resource
+    :param color: The color of the tile
+    :param coordinates: The graphical location of the tile
+    :ivar edgeLength: The length of 1 side of the tile
+    :ivar radius: The distance from the center of the tile to any vertex of the tile
+    :ivar vertices: A list of the Vertex objects for the vertices of the tile
+    :ivar hasRobber: True if the Robber is on the tile; False otherwise
+    :ivar vertexCoordinates: A list of the graphical locations of the tile's vertices
+    """
+
     def __init__(self, resource, odds, color, coordinates):
         self.resource = resource
         self.odds = odds
@@ -34,10 +44,17 @@ class Hex(object):
                                    self.coordinates[1] + int(round(self.edgeLength / 2.0)))]
 
 
-# A vertex between hexagonal tiles and/or coasts
 class Vertex(object):
-    """Defined by its location and relationship to hexes and other vertices.
-       Also knows of ports, settlements, and roads on it."""
+    """A representation for the vertices of the tiles.
+
+    :param coordinates: The graphical location of the vertex
+    :ivar port: The trading port connected to this vertex, if applicable
+    :ivar settlement: The player settlement on the vertex, if applicable
+    :ivar roads: A list of the roads connected to the vertex
+    :ivar canBeSettled: False if under or adjacent to a settlement; True otherwise
+    :ivar adjacentVertices: The closest vertices in each direction
+    """
+
     def __init__(self, coordinates):
         self.hexes = []
         self.port = None
@@ -48,10 +65,16 @@ class Vertex(object):
         self.coordinates = coordinates
 
 
-# A town or city able to be placed on a vertex
 class Settlement(object):
-    """Defined by its size (town or city) and owner.
-       Also knows if/where it's been built and its size"""
+    """A representation of the settlements built by the players.
+
+    :param scale: The type of settlement - 1 for town, 2 for city
+    :param player: The owner of the settlement
+    :ivar vertex: The vertex on which the settlement is built, if applicable
+    :ivar edgeLength: The length of 1 side of the square representing the settlement when scale = 1
+    :ivar circumradius: The distance from the center of the pentagon (when scale = 2) to 1 of the pentagon's vertices
+    """
+
     def __init__(self, scale, player):
         self.scale = scale
         self.owner = player
@@ -60,7 +83,7 @@ class Settlement(object):
         self.circumradius = int(round(math.sqrt(50 + 10 * math.sqrt(5)) * self.edgeLength / 10))
     
     def find_yield(self, roll):
-        """Checks surrounding hex tiles for odds that match the roll and returns resources accordingly."""
+        """Check surrounding hex tiles for odds that match the roll and return resources accordingly."""
         yieldedResources = dict(zip(c.resourceTypes, [0, 0, 0, 0, 0]))
         for hexTile in self.vertex.hexes:
             if hexTile.odds == roll and not hexTile.hasRobber and hexTile.resource != "Desert":
@@ -68,7 +91,7 @@ class Settlement(object):
         return yieldedResources
 
     def draw_settlement(self, surface):
-        """Places image (square for town, pentagon for city) of settlement over its vertex, in the owner's color."""
+        """Place image (square for town, pentagon for city) of settlement over its vertex, in the owner's color."""
         if self.scale == 1:
             pygame.draw.rect(surface, self.owner.color, pygame.Rect(self.vertex.coordinates[0] - self.edgeLength / 2,
                                                                     self.vertex.coordinates[1] - self.edgeLength / 2,
@@ -86,9 +109,15 @@ class Settlement(object):
             pygame.draw.polygon(surface, self.owner.color, [p1, p2, p3, p4, p5])
 
 
-# A road connecting settlements
 class Road(object):
-    """Defined by its size, owner, and vertices it connects, if any."""
+    """A representation of the roads built by the players.
+
+    :param player: The owner of the road
+    :ivar vertex1: The vertex at one of the road's endpoints, if applicable
+    :ivar vertex2: The vertex at the other endpoint, if applicable
+    :ivar width: The thickness of the line representing the road on the board
+    """
+
     def __init__(self, player):
         self.owner = player
         self.vertex1 = None
@@ -96,21 +125,26 @@ class Road(object):
         self.width = c.roadWidth
 
     def draw_road(self, surface):
-        """Places image of road along the edge between its vertices in the owner's color."""
+        """Place image of road along the edge between its vertices in the owner's color."""
         pygame.draw.line(surface, self.owner.color, self.vertex1.coordinates, self.vertex2.coordinates, self.width)
 
 
-# A trading port along the coast
 class Port(object):
-    """Defined by the resources it affects, the trade ratio for those resources, and the vertices that access it."""
+    """A representation of the trading ports along the coast.
+
+    :param resources: The resources affected the port
+    :param rate: The trade ratio granted by the port
+    :ivar vertices: The vertices affected by the port
+    """
+
     def __init__(self, resources, rate):
         self.resources = resources
         self.rate = rate
         self.vertices = []
 
     def draw_port(self, surface, color):
-        """Places image of port (triangle) off the coast in between the two vertices that can access it and
-           colored according to the resources the port affects."""
+        """Place image of port (triangle) off the coast in between the two vertices that can access it and
+           color according to the resources the port affects."""
         neighborVertices = []
         for vertex in self.vertices:
             adjVerOptions = list(vertex.adjacentVertices)
@@ -127,8 +161,6 @@ class Port(object):
         runs = [self.vertices[i].coordinates[0] - neighborVertices[i].coordinates[0] for i in range(2)]
         indexA = 0
         indexB = 1
-        outerCornerX = 0
-        outerCornerY = 0
         if 0 in runs:
             indexA = runs.index(0)
             indexB = (indexA - 1) * -1
@@ -149,9 +181,15 @@ class Port(object):
         pygame.draw.polygon(surface, color, [(outerCornerX, outerCornerY), cornerA, cornerB])
 
 
-# The Robber piece
 class Robber(object):
-    """Defined by its size, color, location, and the hex tile it occupies."""
+    """A representation of the Robber game piece.
+
+    :param desertHex: The Hex of the desert tile
+    :ivar radius: The radius of the circle used to represent the Robber on the board
+    :ivar color: The color of the circle used to represent the Robber on the board
+    :ivar coordinates: The graphical location of the center of the circle representing the Robber on the board
+    """
+
     def __init__(self, desertHex):
         self.currentHex = desertHex
         self.radius = c.robberRadius
@@ -160,7 +198,7 @@ class Robber(object):
                             self.currentHex.coordinates[1] - int(round(self.radius / 2)))
     
     def move(self, newHex, surface):
-        """Alters the board image and properties of the Robber such that it changes position."""
+        """Alter the board image and properties of the Robber such that it changes position."""
         pygame.draw.circle(surface, self.currentHex.color, self.coordinates, self.radius)
         self.currentHex.hasRobber = False
         self.currentHex = newHex
@@ -170,7 +208,7 @@ class Robber(object):
         self.draw_robber(surface)
 
     def steal_from(self, playerToRob):
-        """Takes a random resource card from the targeted player."""
+        """Take a random resource card from the targeted player."""
         targetCards = playerToRob.cardsInHand
         targetHand = []
         for key in targetCards.keys():
@@ -184,7 +222,7 @@ class Robber(object):
             return cardStolen
 
     def play(self, surface, newHex, playerRobbing, playerToRob):
-        """Combines Robber functions into a complete game action."""
+        """Combine Robber functions into a complete game action."""
         self.move(newHex, surface)
         if playerToRob is None:
             return "{} moved the Robber and drew nothing from Nobody.".format(playerRobbing.name)
@@ -199,13 +237,28 @@ class Robber(object):
         pygame.draw.circle(surface, self.color, self.coordinates, self.radius)
 
 
-# A player in the game
-# Has identifying variables, point total, list of settlements built and count remaining, list of roads built and
-#     count remaining, list of unplayed development cards, count of Knights played, status of owning Longest_Road and
-#     Largest_Army, and list of resource cards in hand
-# Functions for each action a player can take during their turn
 class Player(object):
-    """Defined by name, color, human or AI, game points, resources, dev. cards, infrastructure, and trade ratios."""
+    """A representation of and the data for the players participating in the game.
+
+    :param name: The identifier of the player
+    :param color: The color to be used for the player's infrastructure and identification
+    :param isAI: False if the player is a human; True if the player is a bot
+    :ivar points: The game points accumulated by the player
+    :ivar builtSettlements: A list of the settlements that the player has built
+    :ivar unbuiltSettlements: A list of the settlements available to be built by the player
+    :ivar builtRoads: A list of the roads that the player has built
+    :ivar unbuiltRoads: A list of the roads available to be built by the player
+    :ivar newDevelopmentCards: A list of the Development Cards bought by the player during the current turn
+    :ivar developmentCards: A list of the Development Cards bought by the player before the current turn
+    :ivar hasPlayedKnight: True if the player used a Knight in the current turn; False if not
+    :ivar armySize: A count of the Knights played by the player
+    :ivar hasLongestRoad: True if the player meets the game criteria for Longest Road; False otherwise
+    :ivar hasLargestArmy: True if the player meets the game criteria for Largest Army; False otherwise
+    :ivar cardsInHand: A dictionary tracking the number of each resource in the player's hand
+    :ivar tradeRatios: A dictionary of the trade ratio available to the player for each resource
+    :ivar log: A list of the log messages relevant to the player
+    """
+
     def __init__(self, name, color, isAI):
         self.name = name
         self.color = color
@@ -265,9 +318,9 @@ class Player(object):
         return self.developmentCards.count(card) + self.newDevelopmentCards.count(card)
     
     def build_town(self, vertexToSettle, resourceDecks, surface):
-        """After checks, places town on a vertex and changes player data accordingly, including discarding resources."""
+        """After checks, place town on a vertex and change player data accordingly, including discarding resources."""
         if not self.can_afford(c.townCost):
-                return (2, "{} cannot afford to build a town.".format(self.name, resource))
+                return (2, "{} cannot afford to build a town.".format(self.name))
         if not vertexToSettle.canBeSettled:
             return (3, "That vertex cannot be built upon.")
         if not self.has_unbuilt_town():
@@ -298,7 +351,7 @@ class Player(object):
         return (1, "Failed to build the town for an unknown reason.")
     
     def build_city(self, vertexToUpgrade, resourceDecks, surface):
-        """After checks, puts city over a town and changes player data accordingly, including discarding resources."""
+        """After checks, put city over a town and change player data accordingly, including discarding resources."""
         if not self.can_afford(c.cityCost):
             return (2, "{} cannot afford to upgrade a settlement".format(self.name))
         if not self.has_unbuilt_city:
@@ -360,7 +413,7 @@ class Player(object):
         return (0, "Success!")
     
     def buy_development_card(self, developmentDeck, resourceDecks):
-        """After checks, exchanges resources for development card and alters player data and card decks accordingly."""
+        """After checks, exchange resources for development card and alter player data and card decks accordingly."""
         if not self.can_afford(c.developmentCardCost):
             return (1, "{} cannot afford to buy a Development Card.".format(self.name))
         if len(developmentDeck) == 0:
@@ -404,7 +457,7 @@ class Player(object):
             resourceDecks[resource] -= cardsToDraw[resource]
         return(0, "Success!")
 
-    def determine_harvest(self, roll):
+    def determine_harvest(self, roll, resourceDecks):
         harvest = []
         if self.builtSettlements:
             for settlement in self.builtSettlements:
@@ -413,7 +466,7 @@ class Player(object):
                 harvestDict = {c.grain: 0, c.ore: 0, c.wool: 0, c.clay: 0, c.lumber: 0}
                 for resource in c.resourceTypes:
                     harvestDict[resource] = harvest.count(resource)
-                self.draw_resources(harvestDict)
+                self.draw_resources(harvestDict, resourceDecks)
     
     def count_points(self):
         pointCounter = 0
@@ -430,10 +483,14 @@ class Player(object):
         return pointCounter
 
 
-# The Largest Army placard
-# Has owner of placard, size of the largest army, and list of players in the game
-# Functions for determining the player with the largest army, and for reassigning the placard
 class LargestArmy(object):
+    """A manager for the Largest Army award.
+
+    :param playerList: A list of the player objects active in the game
+    :ivar owner: The player in possession of the Largest Army, if applicable
+    :ivar size: The size of the largest army
+    """
+
     def __init__(self, playerList):
         self.owner = None
         self.size = 2
@@ -453,11 +510,14 @@ class LargestArmy(object):
             self.size = newSize
 
 
-# The Longest Road placard
-# Has owner of placard and length of the longest road
-# Functions for determining the player with the longest road, for determining the length of the longest
-#     stretch connected to a given road (for a specific player), and for reassigning the placard
 class LongestRoad(object):
+    """A manager for the Longest Road award.
+
+    :param playerList: A list of the player objects active in the game
+    :ivar owner: The player in possession of the Longest Road, if applicable
+    :ivar size: The length of the longest road
+    """
+
     def __init__(self, playerList):
         self.owner = None
         self.size = 0
@@ -500,6 +560,19 @@ class LongestRoad(object):
 
 
 class PlayerKey(object):
+    """A key to relate visually player names and player colors for the benefit of human players.
+
+    :param keyFont: The font in which to write the player names
+    :param playerList: A list of the player objects active in the game
+    :ivar background: The background color of the key
+    :ivar box: The pygame Rect defining the shape and location of the key
+    :ivar title: The heading of the key
+    :ivar titleCoordinates: The graphical location of the title
+    :ivar colorBoxes: A list of the boxes used to show the player colors in the key
+    :ivar playerColors: A list of the colors for each player
+    :ivar playerLabelCoordinates: A list of the graphical locations for each player's name
+    """
+
     def __init__(self, keyFont, playerList):
         self.background = c.white
         self.box = pygame.Rect(int(round(c.hexEdgeLength/2)), int(round(c.hexEdgeLength/2)), 120, 120)
